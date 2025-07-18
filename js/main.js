@@ -19,7 +19,7 @@ document.getElementById("excelFileInput").addEventListener("change", async (even
         status.innerText = `Lendo arquivo ${i+1} de ${files.length}: ${files[i].name}`;
 
         // Ler e exibir apenas as primeiras 100 linhas da primeira aba
-        await readExcelFiles(files[i], tabelaContainer, 100);
+        await readExcelFile(files[i], tabelaContainer, 100);
 
         await new Promise(resolve => setTimeout(resolve, 100));
     }
