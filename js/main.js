@@ -1,6 +1,6 @@
 
 import { readExcelFiles } from './excelReader.js';
-import { aplicarFilters } from './filterLogic.js';
+import { applyFilters } from './filterLogic.js';
 
 document.getElementById("excelFileInput").addEventListener("change", async (event) => {
     const files = Array.from(event.target.files);
