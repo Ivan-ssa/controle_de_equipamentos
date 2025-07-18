@@ -1,5 +1,5 @@
 
-import { readExcelFiles } from './excelReader.js';
+import { readExcelFile} from './excelReader.js';
 import { applyFilters } from './filterLogic.js';
 
 document.getElementById("excelFileInput").addEventListener("change", async (event) => {
