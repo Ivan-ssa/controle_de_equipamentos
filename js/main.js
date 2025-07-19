@@ -1,94 +1,144 @@
-//main.js
-document.getElementById('fileInput').addEventListener('change', handleFile);
+// main.js
+import { applyFilters } from './filterLogic.js';
 
-function handleFile(event) {
-    const file = event.target.files[0];
-    const reader = new FileReader();
+let allData = [];
 
-    reader.onload = function (e) {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
+document.getElementById('fileInput').addEventListener('change', async (event) => {
+  const file = event.target.files[0];
+  const status = document.getElementById('output'); // Usando output como área de status
+  const tableBody = document.querySelector('#equipmentTable tbody');
 
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+  if (!file) {
+    status.innerText = 'Nenhum arquivo selecionado.';
+    return;
+  }
 
-        renderEquipmentTable(jsonData);
-    };
+  status.innerText = 'Lendo arquivo...';
 
-    reader.readAsArrayBuffer(file);
-}
+  const data = await readEquipmentsFromExcel(file);
+  allData = data;
+
+  renderEquipmentTable(data);
+  renderOSTable(data);
+  preencherFiltros(data);
+
+  status.innerText = `Arquivo processado! Total de equipamentos: ${data.length}`;
+});
 
 function renderEquipmentTable(data) {
-    const output = document.getElementById('output');
-    output.innerHTML = '';
+  const tableBody = document.querySelector('#equipmentTable tbody');
+  tableBody.innerHTML = '';
 
-    if (data.length < 2) {
-        output.innerText = 'Sem dados suficientes na planilha.';
-        return;
+  data.forEach(row => {
+    const tr = document.createElement('tr');
+
+    const fornecedor = row['Fornecedor'] || '';
+    const dataCalibracao = row['data calibração'] ? formatDate(row['data calibração']) : '';
+
+    // Status calibração mostra nome da empresa ou 'Não encontrado'
+    let statusCalibracao = fornecedor || 'Não encontrado';
+
+    // Fundo verde para calibrados
+    if (fornecedor && dataCalibracao) {
+      tr.style.backgroundColor = '#d4edda'; // verde claro
+    } else {
+      tr.style.backgroundColor = ''; // sem cor para não calibrado
     }
 
-    // Define os títulos das colunas esperadas (ajustado com base no seu cabeçalho real)
-    const headerTitles = [
-        'TAG', 'Equipamento', 'Modelo', 'Fabricante', 'Setor', 'Nº Série',
-        'Patrimônio', 'Inativo', 'Fornecedor', 'Data', 'Calibração',
-        'Manutenção Externa', 'OS aberta calibração'
-    ];
+    const isManutencao = row['manu_externa'];
 
-    const table = document.createElement('table');
-    table.border = '1';
-    table.style.borderCollapse = 'collapse';
-    table.style.width = '100%';
+    tr.innerHTML = `
+      <td>${row['TAG'] || ''}</td>
+      <td>${row['Equipamento'] || ''}</td>
+      <td>${row['Modelo'] || ''}</td>
+      <td>${row['Fabricante'] || ''}</td>
+      <td>${row['Setor'] || ''}</td>
+      <td>${row['Nº Série'] || ''}</td>
+      <td>${row['Patrimônio'] || ''}</td>
+      <td>${statusCalibracao}</td>
+      <td>${dataCalibracao}</td>
+    `;
 
-    // Cabeçalho da tabela
-    const thead = document.createElement('thead');
-    const headerRow = document.createElement('tr');
-    headerTitles.forEach(title => {
-        const th = document.createElement('th');
-        th.innerText = title;
-        th.style.backgroundColor = '#f0f0f0';
-        th.style.padding = '6px';
-        headerRow.appendChild(th);
-    });
-    thead.appendChild(headerRow);
-    table.appendChild(thead);
+    if (isManutencao) {
+      tr.classList.add('em-manutencao'); // para deixar texto em vermelho e itálico via CSS
+    }
 
-    // Corpo da tabela
-    const tbody = document.createElement('tbody');
-    const rows = data.slice(1); // Ignora o cabeçalho da planilha
+    tableBody.appendChild(tr);
+  });
 
-    rows.forEach(row => {
-        const tr = document.createElement('tr');
-
-        // Verifica se o equipamento está calibrado (coluna 10 = "Calibração")
-        const calibrado = row[10] && row[10].toString().trim() !== '';
-        if (calibrado) {
-            tr.style.backgroundColor = '#d4edda'; // verde claro
-        }
-
-        for (let i = 0; i < headerTitles.length; i++) {
-            const td = document.createElement('td');
-            const cell = row[i] || '';
-
-            // Estilizações específicas
-            if (i === 8) {
-                td.innerText = cell || 'Não encontrado'; // Fornecedor
-            } else if (i === 11) {
-                td.innerText = cell;
-                td.style.color = 'red'; // Manutenção Externa
-                td.style.fontStyle = 'italic';
-            } else {
-                td.innerText = cell;
-            }
-
-            td.style.padding = '5px';
-            tr.appendChild(td);
-        }
-
-        tbody.appendChild(tr);
-    });
-
-    table.appendChild(tbody);
-    output.appendChild(table);
+  document.getElementById('equipmentCount').innerText = `Total: ${data.length} equipamentos`;
 }
 
+function renderOSTable(data) {
+  const tableBody = document.querySelector('#osTable tbody');
+  tableBody.innerHTML = '';
+
+  // Considera as OS abertas (se houver campo OS aberta calibração preenchido)
+  const osData = data.filter(row => row['OS aberta calibração']);
+
+  osData.forEach(row => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${row['OS aberta calibração'] || ''}</td>
+      <td>${row['Patrimônio'] || ''}</td>
+      <td>${row['Nº Série'] || ''}</td>
+      <td>${row['Equipamento'] || ''}</td>
+      <td>${row['Modelo'] || ''}</td>
+      <td>${row['Fabricante'] || ''}</td>
+      <td>${row['Setor'] || ''}</td>
+    `;
+    tableBody.appendChild(tr);
+  });
+
+  document.getElementById('osCount').innerText = `Total: ${osData.length} OS`;
+}
+
+function preencherFiltros(data) {
+  const setorSelect = document.getElementById('sectorFilter');
+  const rondaSelect = document.getElementById('rondaSectorSelect');
+
+  const setores = new Set();
+
+  data.forEach(row => {
+    if (row['Setor']) setores.add(row['Setor']);
+  });
+
+  setorSelect.innerHTML = `<option value="">Todos os Setores</option>`;
+  rondaSelect.innerHTML = `<option value="">Selecione um Setor</option>`;
+
+  setores.forEach(setor => {
+    const option1 = document.createElement('option');
+    option1.value = setor;
+    option1.textContent = setor;
+    setorSelect.appendChild(option1);
+
+    const option2 = option1.cloneNode(true);
+    rondaSelect.appendChild(option2);
+  });
+}
+
+function formatDate(excelDate) {
+  const jsDate = new Date((excelDate - 25569) * 86400 * 1000);
+  return jsDate.toLocaleDateString('pt-BR');
+}
+
+async function readEquipmentsFromExcel(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+
+      // Usa aba Equip_VBA como padrão
+      const worksheet = workbook.Sheets['Equip_VBA'];
+      if (!worksheet) {
+        reject("Aba 'Equip_VBA' não encontrada.");
+        return;
+      }
+      const json = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+      resolve(json);
+    };
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
+  });
+}

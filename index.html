@@ -1,152 +1,145 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Leitor e Cruzamento de Dados Excel </title>
-    <link rel="stylesheet" href="css/style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Leitor e Cruzamento de Dados Excel</title>
+  <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
-    <h1>Leitor e Cruzamento de Dados Excel v.1.1.3</h1>
+  <h1>Leitor e Cruzamento de Dados Excel V1.1.4</h1>
 
-    <p>Selecione os arquivos Excel (o arquivo de equipamentos, a consolidação de calibrações e o de manutenção):</p>
-    <input type="file" id="excelFileInput" accept=".xls,.xlsx" multiple>
-    <button id="processButton">Processar Arquivos</button>
+  <p>Selecione os arquivos Excel (o arquivo de equipamentos, a consolidação de calibrações e o de manutenção):</p>
+  <input type="file" id="fileInput" accept=".xls,.xlsx" multiple />
+  <button id="processButton">Processar Arquivos</button>
 
-    <h2>Mensagens:</h2>
-    <pre id="output"></pre>
-    <p id="status" style="color: green; font-weight: bold;"></p>
+  <h2>Mensagens:</h2>
+  <pre id="output"></pre>
 
+  <hr />
 
-    <hr>
+  <div style="margin-top: 20px; margin-bottom: 20px;">
+    <button id="showEquipmentButton" class="toggle-section-button active">Ver Equipamentos</button>
+    <button id="showOsButton" class="toggle-section-button">Ver Ordens de Serviço (OS)</button>
+    <button id="showRondaButton" class="toggle-section-button">Ver Ronda</button>
+  </div>
 
-    <div style="margin-top: 20px; margin-bottom: 20px;">
-        <button id="showEquipmentButton" class="toggle-section-button active">
-            Ver Equipamentos
-        </button>
-        <button id="showOsButton" class="toggle-section-button">
-            Ver Ordens de Serviço (OS)
-        </button>
-        <button id="showRondaButton" class="toggle-section-button"> 
-            Ver Ronda
-        </button>
+  <div id="equipmentSection" class="section-container">
+    <h2>Equipamentos Cadastrados</h2>
+    <div id="equipmentTableContainer" class="equipment-table-container">
+      <div id="filterContainer">
+        <label for="sectorFilter">Filtrar por Setor:</label>
+        <select id="sectorFilter">
+          <option value="">Todos os Setores</option>
+        </select>
+
+        <label for="calibrationStatusFilter">Filtrar por Status de Calibração:</label>
+        <select id="calibrationStatusFilter">
+          <option value="">Todos os Status</option>
+          <option value="Divergência (Todos Fornecedores)">Divergência (Todos Fornecedores)</option>
+          <option value="Não Calibrado/Não Encontrado (Seu Cadastro)">Não Calibrado/Não Encontrado (Seu Cadastro)</option>
+          <option value="Não Cadastrado">Não Cadastrado</option>
+          <option value="Não Calibrado">Não Calibrado</option>
+          <option value="Calibrado (Total)">Calibrado (Total)</option>
+        </select>
+        <span id="equipmentCount">Total: 0 equipamentos</span>
+
+        <label for="searchInput">Buscar por Nº Série ou Patrimônio:</label>
+        <input type="text" id="searchInput" placeholder="Digite SN, Patrimônio ou TAG..." />
+
+        <label for="maintenanceFilter">Filtrar por Manutenção:</label>
+        <select id="maintenanceFilter">
+          <option value="">Todos</option>
+          <option value="Em Manutenção Externa">Em Manutenção Externa</option>
+        </select>
+      </div>
+
+      <button id="exportButton" style="margin-bottom: 15px;">Exportar Tabela para Excel</button>
+
+      <table id="equipmentTable">
+        <thead>
+          <tr>
+            <th>TAG</th>
+            <th>Equipamento</th>
+            <th>Modelo</th>
+            <th>Fabricante</th>
+            <th>Setor</th>
+            <th>Nº Série</th>
+            <th>Patrimônio</th>
+            <th>Status Calibração</th>
+            <th>Data Vencimento Calibração</th>
+          </tr>
+          <tr id="headerFilters"></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="osSection" class="section-container hidden">
+    <h2>Ordens de Serviço em Aberto (OS)</h2>
+    <div id="osTableContainer" class="equipment-table-container">
+      <p>Visão simplificada das OS em aberto com status de calibração e manutenção.</p>
+      <span id="osCount">Total: 0 OS</span>
+      <button id="exportOsButton" style="margin-bottom: 15px;">Exportar OS para Excel</button>
+
+      <table id="osTable">
+        <thead>
+          <tr>
+            <th>OS</th>
+            <th>Patrimônio</th>
+            <th>Nº de Série</th>
+            <th>Equipamento</th>
+            <th>Modelo</th>
+            <th>Fabricante</th>
+            <th>Setor</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="rondaSection" class="section-container hidden">
+    <h2>Ronda de Equipamentos</h2>
+    <div
+      id="rondaControls"
+      style="margin-bottom: 20px; padding: 15px; background-color: #f0f8ff; border: 1px solid #cfe2ff; border-radius: 8px;"
+    >
+      <label for="rondaSectorSelect">Selecionar Setor para Ronda:</label>
+      <select id="rondaSectorSelect">
+        <option value="">Selecione um Setor</option>
+      </select>
+      <button id="startRondaButton" style="margin-left: 10px;">Iniciar Ronda</button>
+      <input type="file" id="rondaFileInput" accept=".xls,.xlsx" style="margin-left: 20px;" />
+      <button id="loadRondaButton">Carregar Ronda Existente</button>
     </div>
 
-    <div id="equipmentSection" class="section-container">
-        <h2>Equipamentos Cadastrados</h2>
-        <div id="equipmentTableContainer" class="equipment-table-container">
-            <div id="filterContainer">
-                <label for="sectorFilter">Filtrar por Setor:</label>
-                <select id="sectorFilter">
-                    <option value="">Todos os Setores</option>
-                </select>
+    <span id="rondaCount">Total: 0 Equipamentos na Ronda</span>
+    <button id="saveRondaButton" style="margin-bottom: 15px;">Salvar Ronda para Excel</button>
 
-                <label for="calibrationStatusFilter">Filtrar por Status de Calibração:</label>
-                <select id="calibrationStatusFilter">
-                    <option value="">Todos os Status</option>
-                    <option value="Divergência (Todos Fornecedores)">Divergência (Todos Fornecedores)</option>
-                    <option value="Não Calibrado/Não Encontrado (Seu Cadastro)">Não Calibrado/Não Encontrado (Seu Cadastro)</option>
-                    <option value="Não Cadastrado">Não Cadastrado</option>
-                    <option value="Não Calibrado">Não Calibrado</option>
-                    <option value="Calibrado (Total)">Calibrado (Total)</option>
-                </select>
-                <span id="equipmentCount">Total: 0 equipamentos</span>
-
-                <label for="searchInput">Buscar por Nº Série ou Patrimônio:</label>
-                <input type="text" id="searchInput" placeholder="Digite SN, Patrimônio ou TAG...">
-
-                <label for="maintenanceFilter">Filtrar por Manutenção:</label>
-                <select id="maintenanceFilter">
-                    <option value="">Todos</option>
-                    <option value="Em Manutenção Externa">Em Manutenção Externa</option>
-                </select>
-            </div>
-
-            <button id="exportButton" style="margin-bottom: 15px;">Exportar Tabela para Excel</button>
-
-            <table id="equipmentTable">
-                <thead>
-                    <tr>
-                        <th>TAG</th>
-                        <th>Equipamento</th>
-                        <th>Modelo</th>
-                        <th>Fabricante</th>
-                        <th>Setor</th>
-                        <th>Nº Série</th>
-                        <th>Patrimônio</th>
-                        <th>Empresa</th>
-                        <th>Data Calibração</th>
-                    </tr>
-                    <tr id="headerFilters">
-                        </tr>
-                </thead>
-                <tbody>
-                </tbody>
-            </table>
-        </div>
+    <div id="rondaTableContainer" class="equipment-table-container">
+      <table id="rondaTable">
+        <thead>
+          <tr>
+            <th>TAG</th>
+            <th>Equipamento</th>
+            <th>Setor</th>
+            <th>Disponibilidade</th>
+            <th>Localização (Sala/Quarto)</th>
+            <th>Observações da Ronda</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
     </div>
+  </div>
 
-    <div id="osSection" class="section-container hidden">
-        <h2>Ordens de Serviço em Aberto (OS)</h2>
-        <div id="osTableContainer" class="equipment-table-container"> 
-            <p>Visão simplificada das OS em aberto com status de calibração e manutenção.</p>
-            <span id="osCount">Total: 0 OS</span>
-            <button id="exportOsButton" style="margin-bottom: 15px;">Exportar OS para Excel</button>
+  <!-- Bibliotecas -->
+  <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 
-            <table id="osTable">
-                <thead>
-                    <tr>
-                        <th>OS</th>
-                        <th>Patrimônio</th>
-                        <th>Nº de Série</th>
-                        <th>Equipamento</th>
-                        <th>Modelo</th>
-                        <th>Fabricante</th>
-                        <th>Setor</th> </tr>
-                </thead>
-                <tbody>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <div id="rondaSection" class="section-container hidden">
-        <h2>Ronda de Equipamentos</h2>
-        <div id="rondaControls" style="margin-bottom: 20px; padding: 15px; background-color: #f0f8ff; border: 1px solid #cfe2ff; border-radius: 8px;">
-            <label for="rondaSectorSelect">Selecionar Setor para Ronda:</label>
-            <select id="rondaSectorSelect">
-                <option value="">Selecione um Setor</option>
-            </select>
-            <button id="startRondaButton" style="margin-left: 10px;">Iniciar Ronda</button>
-            <input type="file" id="rondaFileInput" accept=".xls,.xlsx" style="margin-left: 20px;">
-            <button id="loadRondaButton">Carregar Ronda Existente</button>
-        </div>
-
-        <span id="rondaCount">Total: 0 Equipamentos na Ronda</span>
-        <button id="saveRondaButton" style="margin-bottom: 15px;">Salvar Ronda para Excel</button>
-
-        <div id="rondaTableContainer" class="equipment-table-container">
-            <table id="rondaTable">
-                <thead>
-                    <tr>
-                        <th>TAG</th>
-                        <th>Equipamento</th>
-                        <th>Setor</th>
-                        <th>Disponibilidade</th>
-                        <th>Localização (Sala/Quarto)</th>
-                        <th>Observações da Ronda</th>
-                    </tr>
-                </thead>
-                <tbody>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
-    
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
-    
-    <script type="module" src="js/main.js"></script>
+  <!-- Script principal -->
+  <script type="module" src="js/main.js"></script>
 </body>
 </html>
