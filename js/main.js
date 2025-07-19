@@ -115,7 +115,6 @@ function populateCalibrationStatusFilter(rawCalibrationsData) {
     });
 }
 
-
 async function handleProcessFile() {
     outputDiv.textContent = 'Processando arquivo Excel...';
     // Garante que o objeto XLSX da biblioteca correta está disponível
@@ -161,23 +160,23 @@ async function handleProcessFile() {
         window.osRawData = [];
 
         allEquipments.forEach(item => {
-            // Lógica para Calibração - Procura por cabeçalhos comuns para maior flexibilidade
+            // Lógica para Calibração - Agora buscando pelos nomes EXATOS das colunas
             const sn = normalizeId(item['Nº Série'] || item.NumeroSerie);
-            const fornecedor = String(item.Fornecedor || item.fornecedor || item['Fornecedor Calibracao'] || item['Fornecedor Consolidacao'] || '').trim();
-            const dataCalib = item['Data Calibração'] || item['Data Calibracao']; 
+            const fornecedor = String(item['Fornecedor'] || '').trim();
+            const dataCalib = item['Data Calibração']; 
 
-            if (sn && fornecedor) {
+            if (sn && fornecedor !== '') { // Verifica se a string do fornecedor não está vazia
                 window.consolidatedCalibratedMap.set(sn, { fornecedor, dataCalibricao: dataCalib });
             }
 
-            // Lógica para Manutenção Externa - Procura por cabeçalhos comuns
-            const manutencaoExterna = String(item['Manutenção Externa'] || item['Manutencao Externa'] || item.ManutencaoExterna || item.Manutencao_Externa || '').trim().toLowerCase();
+            // Lógica para Manutenção Externa - Agora buscando pelo nome EXATO da coluna
+            const manutencaoExterna = String(item['Manutenção Externa'] || '').trim().toLowerCase();
             if (sn && manutencaoExterna === 'em manutenção') {
                 window.externalMaintenanceSNs.add(sn);
             }
 
-            // Lógica para OS em Aberto
-            const osNumero = String(item.OS || item['Número OS'] || item['Numero OS'] || '').trim();
+            // Lógica para OS em Aberto - Agora buscando pelo nome EXATO da coluna
+            const osNumero = String(item['OS'] || '').trim();
             if (osNumero !== '') {
                 window.osRawData.push(item);
             }
@@ -212,6 +211,7 @@ async function handleProcessFile() {
         console.error('Erro ao processar arquivos:', error);
     }
 }
+
 
 function setupHeaderFilters(equipments) {
     headerFiltersRow.innerHTML = ''; 
