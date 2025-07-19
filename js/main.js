@@ -28,62 +28,59 @@ function renderEquipmentTable(data) {
         return;
     }
 
-    const headers = data[0];
-    const rows = data.slice(1);
+    // Define os títulos das colunas esperadas (ajustado com base no seu cabeçalho real)
+    const headerTitles = [
+        'TAG', 'Equipamento', 'Modelo', 'Fabricante', 'Setor', 'Nº Série',
+        'Patrimônio', 'Inativo', 'Fornecedor', 'Data', 'Calibração',
+        'Manutenção Externa', 'OS aberta calibração'
+    ];
 
     const table = document.createElement('table');
     table.border = '1';
     table.style.borderCollapse = 'collapse';
     table.style.width = '100%';
 
+    // Cabeçalho da tabela
     const thead = document.createElement('thead');
     const headerRow = document.createElement('tr');
-
-    const headerTitles = ['TAG', 'Equipamento', 'Modelo', 'Fabricante', 'Setor', 'Nº Série', 'Patrimônio', 'Inativo', 'Fornecedor (Status)', 'Data', 'Calibração', 'Manutenção Externa', 'OS Calibração'];
     headerTitles.forEach(title => {
         const th = document.createElement('th');
         th.innerText = title;
-        th.style.backgroundColor = '#ddd';
+        th.style.backgroundColor = '#f0f0f0';
+        th.style.padding = '6px';
         headerRow.appendChild(th);
     });
-
     thead.appendChild(headerRow);
     table.appendChild(thead);
 
+    // Corpo da tabela
     const tbody = document.createElement('tbody');
+    const rows = data.slice(1); // Ignora o cabeçalho da planilha
 
-    rows.forEach((row, index) => {
+    rows.forEach(row => {
         const tr = document.createElement('tr');
 
-        // Verifica se o equipamento está calibrado (coluna "Calibração" = J)
+        // Verifica se o equipamento está calibrado (coluna 10 = "Calibração")
         const calibrado = row[10] && row[10].toString().trim() !== '';
         if (calibrado) {
             tr.style.backgroundColor = '#d4edda'; // verde claro
         }
 
-        row.forEach((cell, colIndex) => {
+        for (let i = 0; i < headerTitles.length; i++) {
             const td = document.createElement('td');
+            const cell = row[i] || '';
 
-            if (colIndex === 8) {
-                // Coluna "Fornecedor" vira o status
-                td.innerText = cell || 'Não encontrado';
-            } else if (colIndex === 11) {
-                // Manutenção externa destacada
-                td.innerText = cell || '';
-                td.style.color = 'red';
+            // Estilizações específicas
+            if (i === 8) {
+                td.innerText = cell || 'Não encontrado'; // Fornecedor
+            } else if (i === 11) {
+                td.innerText = cell;
+                td.style.color = 'red'; // Manutenção Externa
                 td.style.fontStyle = 'italic';
             } else {
-                td.innerText = cell || '';
+                td.innerText = cell;
             }
 
-            td.style.padding = '5px';
-            tr.appendChild(td);
-        });
-
-        // Se faltarem colunas, completa com células vazias
-        for (let i = row.length; i < headerTitles.length; i++) {
-            const td = document.createElement('td');
-            td.innerText = '';
             td.style.padding = '5px';
             tr.appendChild(td);
         }
@@ -94,3 +91,4 @@ function renderEquipmentTable(data) {
     table.appendChild(tbody);
     output.appendChild(table);
 }
+
