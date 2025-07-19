@@ -32,20 +32,30 @@ function renderEquipmentTable(data) {
   data.forEach(row => {
     const tr = document.createElement('tr');
 
-    const fornecedor = row['Fornecedor']?.trim() || '';
-    const dataCalibracao = row['data calibração'] ? formatDate(row['data calibração']) : '';
+    // pega o fornecedor (nome da empresa que calibrou)
+    const fornecedorRaw = row['Fornecedor'];
+    const fornecedor = fornecedorRaw ? fornecedorRaw.trim() : '';
 
-    // Mostrar só o nome da empresa, sem "Não encontrado"
-    const statusCalibracao = fornecedor; // vazio se não tem empresa
+    // data calibração, se não existir, será vazio
+    const dataCalibracaoRaw = row['data calibração'];
+    const dataCalibracao = dataCalibracaoRaw ? formatDate(dataCalibracaoRaw) : '';
 
-    // Linha verde somente se tem empresa (calibrado)
+    // Se não tem fornecedor, mostra 'none' no status e 'none' na data
+    const statusCalibracao = fornecedor || 'none';
+    const dataCalibExibida = fornecedor ? dataCalibracao : 'none';
+
+    // linha verde se tem fornecedor (calibrado)
     if (fornecedor) {
-      tr.style.backgroundColor = '#d4edda'; // verde claro para calibrado
+      tr.style.backgroundColor = '#d4edda'; // verde claro
     } else {
-      tr.style.backgroundColor = ''; // sem cor se não calibrado
+      tr.style.backgroundColor = ''; // sem cor
     }
 
+    // verifica se está em manutenção externa para estilo (vermelho itálico)
     const isManutencao = row['manu_externa'];
+    if (isManutencao) {
+      tr.classList.add('em-manutencao');
+    }
 
     tr.innerHTML = `
       <td>${row['TAG'] || ''}</td>
@@ -56,18 +66,15 @@ function renderEquipmentTable(data) {
       <td>${row['Nº Série'] || ''}</td>
       <td>${row['Patrimônio'] || ''}</td>
       <td>${statusCalibracao}</td>
-      <td>${dataCalibracao}</td>
+      <td>${dataCalibExibida}</td>
     `;
-
-    if (isManutencao) {
-      tr.classList.add('em-manutencao'); // mantém estilo em vermelho itálico se tiver manutenção
-    }
 
     tableBody.appendChild(tr);
   });
 
   document.getElementById('equipmentCount').innerText = `Total: ${data.length} equipamentos`;
 }
+
 
 
 function renderOSTable(data) {
