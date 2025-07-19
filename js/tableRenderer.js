@@ -1,163 +1,108 @@
 // js/tableRenderer.js
 
 /**
- * Renderiza a tabela de equipamentos com os dados fornecidos.
- * @param {Array<Object>} equipments - O array de objetos de equipamentos a serem exibidos.
- * @param {HTMLElement} tableBodyElement - O elemento <tbody> da tabela.
- * @param {Map<string, Object>} consolidatedCalibratedMap - Mapa SN -> { fornecedor, dataCalibracao }.
- * @param {Set<string>} externalMaintenanceSNs - Um conjunto de Números de Série em manutenção externa.
+ * Renderiza a tabela principal de equipamentos.
+ * @param {Array<Array<any>>} filteredEquipments - O array de arrays de equipamentos.
+ * @param {HTMLElement} tableBodyElement - O elemento <tbody> da tabela de equipamentos.
+ * @param {Map<string, Object>} consolidatedCalibratedMap - Mapa de SN -> { fornecedor, dataCalibracao }.
+ * @param {Set<string>} externalMaintenanceSNs - Set de SNs em manutenção externa.
  */
-export function renderTable(equipments, tableBodyElement, consolidatedCalibratedMap, externalMaintenanceSNs) {
-    tableBodyElement.innerHTML = '';
+export function renderTable(filteredEquipments, tableBodyElement, consolidatedCalibratedMap, externalMaintenanceSNs) {
+    // Mapa de colunas para o array de arrays (AoA)
+    const COLUMNS = {
+        TAG: 0,
+        EQUIPAMENTO: 1,
+        MODELO: 2,
+        FABRICANTE: 3,
+        SETOR: 4,
+        NUMERO_SERIE: 5,
+        PATRIMONIO: 6,
+        STATUS_CALIBRACAO: 7,
+        DATA_VENCIMENTO_CALIBRACAO: 8,
+        FORNECEDOR: 9,
+        DATA_CALIBRACAO: 10,
+        MANUTENCAO_EXTERNA: 11,
+        OS: 12
+    };
 
-    if (equipments.length === 0) {
+    tableBodyElement.innerHTML = '';
+    
+    if (filteredEquipments.length === 0) {
         const row = tableBodyElement.insertRow();
         const cell = row.insertCell();
-        cell.colSpan = 10;
+        cell.colSpan = 9;
         cell.textContent = 'Nenhum equipamento encontrado com os filtros aplicados.';
         cell.style.textAlign = 'center';
+        updateEquipmentCount(0);
         return;
     }
 
-    equipments.forEach(equipment => {
+    filteredEquipments.forEach(eq => {
         const row = tableBodyElement.insertRow();
+        const sn = String(eq[COLUMNS.NUMERO_SERIE] || '').trim().toLowerCase();
 
-        // É CRUCIAL que esta normalização seja idêntica à de main.js
-        const equipmentSN = String(equipment?.NumeroSerie || '').trim();
-        let normalizedEquipmentSN;
-
-        // Reproduzir a lógica de normalizeId aqui para depuração
-        if (/^\d+$/.test(equipmentSN)) {
-            normalizedEquipmentSN = String(parseInt(equipmentSN, 10));
-        } else {
-            normalizedEquipmentSN = equipmentSN.toLowerCase();
-        }
-
-        let displayCalibrationStatus = equipment?.StatusCalibacao || '';
-        let displayMaintenanceStatus = equipment?.StatusManutencao || '';
-        let displayDataVencimento = equipment?.DataVencimentoCalibacao || ''; // Data original do cadastro principal
-
-        // LÓGICA DE COLORAÇÃO E ATUALIZAÇÃO DE STATUS DE CALIBRAÇÃO
-        const calibInfo = consolidatedCalibratedMap.get(normalizedEquipmentSN);
-
-        // --- INÍCIO DO CÓDIGO DE DEBUG ADICIONAL NO RENDER (para data) ---
-        // Manter estes logs para depurar a conversão da data serial do Excel.
-        if (calibInfo && (normalizedEquipmentSN.toLowerCase().includes('rts') || calibInfo.fornecedor.toLowerCase().includes('rts'))) { // Filtrar logs apenas para RTS
-            console.log(`DEBUG DATA - Equipamento: ${equipment.TAG} (SN: ${normalizedEquipmentSN})`);
-            console.log(`  calibInfo.dataCalibacao (valor bruto da consolidação):`, calibInfo?.dataCalibacao, `(Tipo: ${typeof calibInfo?.dataCalibacao})`);
-            const testDate = parseExcelDate(calibInfo?.dataCalibacao);
-            console.log(`  parseExcelDate resultado:`, testDate, `(É Date válido? ${testDate instanceof Date && !isNaN(testDate)})`);
-            console.log(`  formatDate resultado:`, formatDate(testDate));
-        }
-        // --- FIM DO CÓDIGO DE DEBUG ADICIONAL NO RENDER ---
-
-        if (calibInfo) {
+        // Lógica de status de calibração
+        let calibStatusCellText = eq[COLUMNS.STATUS_CALIBRACAO] ?? '';
+        let isCalibratedConsolidated = consolidatedCalibratedMap.has(sn);
+        
+        if (isCalibratedConsolidated) {
             row.classList.add('calibrated-dhme');
-            displayCalibrationStatus = `Calibrado (${calibInfo.fornecedor})`;
-
-            // *** ALTERAÇÃO AQUI: REATIVA A CONVERSÃO E FORMATAÇÃO DA DATA ***
-            const dataOrigem = parseExcelDate(calibInfo.dataCalibacao);
-            if (dataOrigem instanceof Date && !isNaN(dataOrigem)) {
-                displayDataVencimento = formatDate(dataOrigem);
-            } else {
-                // Se a conversão falhar, exibe o valor bruto para depuração (pode ser o número serial)
-                displayDataVencimento = calibInfo.dataCalibacao;
-            }
-            // *****************************************************************
-        }
-        else {
-            // Se não foi calibrado por nenhum fornecedor da consolidação
-            const originalCalibStatusLower = String(equipment?.StatusCalibacao || '').toLowerCase();
-            if (originalCalibStatusLower.includes('não calibrado') || originalCalibStatusLower.includes('não cadastrado')) {
-                 row.classList.add('not-calibrated');
-                 displayCalibrationStatus = 'Não Calibrado/Não Encontrado (Seu Cadastro)';
-            } else if (originalCalibStatusLower.includes('calibrado (total)')) {
-                displayCalibrationStatus = 'Calibrado (Total)';
-                displayDataVencimento = equipment?.DataVencimentoCalibacao || '';
-            } else {
-                displayCalibrationStatus = String(equipment?.StatusCalibacao || '');
-                if (displayCalibrationStatus.trim() === '') {
-                    displayCalibrationStatus = 'Não Calibrado/Não Encontrado (Seu Cadastro)';
-                    row.classList.add('not-calibrated');
-                }
-                displayDataVencimento = equipment?.DataVencimentoCalibacao || '';
-            }
+            const calibInfo = consolidatedCalibratedMap.get(sn);
+            calibStatusCellText = `Calibrado (${calibInfo.fornecedor})`;
+        } else if (String(calibStatusCellText).toLowerCase().includes('não calibrado') || calibStatusCellText.trim() === '') {
+            row.classList.add('not-calibrated');
+            calibStatusCellText = 'Não Calibrado/Não Encontrado (Seu Cadastro)';
+        } else {
+            row.classList.add('calibrated');
+            calibStatusCellText = 'Calibrado (Total)';
         }
 
-        // LÓGICA DE COLORAÇÃO E ATUALIZAÇÃO DE STATUS DE MANUTENÇÃO EXTERNA
-        if (externalMaintenanceSNs.has(normalizedEquipmentSN)) {
+        // Lógica de status de manutenção
+        if (externalMaintenanceSNs.has(sn)) {
             row.classList.add('in-external-maintenance');
-            displayMaintenanceStatus = 'Em Manutenção Externa';
         }
 
-        // PREENCHIMENTO DAS CÉLULAS
-        row.insertCell().textContent = equipment.TAG ?? '';
-        row.insertCell().textContent = equipment.Equipamento ?? '';
-        row.insertCell().textContent = equipment.Modelo ?? '';
-        row.insertCell().textContent = equipment.Fabricante ?? '';
-        row.insertCell().textContent = equipment.Setor ?? '';
-        row.insertCell().textContent = equipment.NumeroSerie ?? '';
-        row.insertCell().textContent = equipment.Patrimonio ?? '';
-        row.insertCell().textContent = displayCalibrationStatus;
-        row.insertCell().textContent = displayDataVencimento; // Esta linha usará o valor formatado ou bruto
-        // row.insertCell().textContent = displayMaintenanceStatus;
+        row.insertCell().textContent = eq[COLUMNS.TAG] ?? '';
+        row.insertCell().textContent = eq[COLUMNS.EQUIPAMENTO] ?? '';
+        row.insertCell().textContent = eq[COLUMNS.MODELO] ?? '';
+        row.insertCell().textContent = eq[COLUMNS.FABRICANTE] ?? '';
+        row.insertCell().textContent = eq[COLUMNS.SETOR] ?? '';
+        row.insertCell().textContent = eq[COLUMNS.NUMERO_SERIE] ?? '';
+        row.insertCell().textContent = eq[COLUMNS.PATRIMONIO] ?? '';
+        row.insertCell().textContent = calibStatusCellText;
+        row.insertCell().textContent = eq[COLUMNS.DATA_VENCIMENTO_CALIBRACAO] ?? '';
     });
-}
-
-// Helper para converter número de data do Excel para data JS
-function parseExcelDate(excelDate) {
-    if (typeof excelDate === 'number' && excelDate > 0) {
-        // Excel baseia suas datas em 1 de janeiro de 1900. JavaScript em 1 de janeiro de 1970.
-        // 25569 é a diferença de dias entre 1900-01-01 e 1970-01-01 (mais um dia devido a bug do Excel com 1900-02-29).
-        // A data 45814 representa 05/07/2025 no Excel, que é 45814 dias após 1900-01-00.
-        // Subtraímos 25569 para ajustar ao epoch do JS (dias desde 1970-01-01), depois multiplicamos por ms/dia.
-        const date = new Date(Math.round((excelDate - 25569) * 86400 * 1000));
-        date.setUTCHours(0, 0, 0, 0); // Define para meia-noite UTC para evitar problemas de fuso horário.
-        return date;
-    }
-    // Adicionar log para quando o valor não é um número ou é inválido
-    console.warn("parseExcelDate: Valor não numérico ou inválido recebido:", excelDate);
-    return null;
-}
-
-// Helper para formatar data para exibição (dd/mm/yyyy)
-function formatDate(date) {
-    if (date instanceof Date && !isNaN(date)) {
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0'); // Mês é 0-indexed
-        const year = date.getFullYear();
-        return `${day}/${month}/${year}`;
-    }
-    return '';
+    updateEquipmentCount(filteredEquipments.length);
 }
 
 /**
- * Popula o dropdown de setores com os setores únicos dos equipamentos.
- * @param {Array<Object>} equipments - O array de objetos de equipamentos.
- * @param {HTMLElement} sectorFilterElement - O elemento <select> do filtro de setor.
- */
-export function populateSectorFilter(equipments, sectorFilterElement) {
-    sectorFilterElement.innerHTML = '<option value="">Todos os Setores</option>';
-
-    const sectors = new Set();
-    equipments.forEach(eq => {
-        if (eq.Setor && String(eq.Setor).trim() !== '') {
-            sectors.add(String(eq.Setor).trim());
-        }
-    });
-
-    Array.from(sectors).sort().forEach(sector => {
-        const option = document.createElement('option');
-        option.value = sector;
-        option.textContent = sector;
-        sectorFilterElement.appendChild(option);
-    });
-}
-
-/**
- * Atualiza o contador de equipamentos exibidos.
+ * Atualiza a contagem de equipamentos na página.
  * @param {number} count - O número de equipamentos a ser exibido.
  */
 export function updateEquipmentCount(count) {
     document.getElementById('equipmentCount').textContent = `Total: ${count} equipamentos`;
+}
+
+/**
+ * Popula o dropdown de setores com base nos dados.
+ * @param {Array<Array<any>>} allEquipments - O array de arrays de equipamentos.
+ * @param {HTMLElement} selectElement - O elemento <select> de setor.
+ */
+export function populateSectorFilter(allEquipments, selectElement) {
+    const COLUMNS = { SETOR: 4 };
+
+    const uniqueSectors = new Set(
+        allEquipments
+            .map(eq => String(eq[COLUMNS.SETOR] || '').trim())
+            .filter(sector => sector !== '')
+    );
+    
+    selectElement.innerHTML = '<option value="">Todos os Setores</option>';
+    
+    Array.from(uniqueSectors).sort().forEach(sector => {
+        const option = document.createElement('option');
+        option.value = sector;
+        option.textContent = sector;
+        selectElement.appendChild(option);
+    });
 }
