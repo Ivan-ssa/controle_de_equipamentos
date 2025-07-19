@@ -1,29 +1,48 @@
 // js/divergenceRenderer.js
 
 /**
- * Renderiza a tabela de divergências de números de série dos fornecedores.
- * @param {Array<Object>} divergences - O array de objetos de divergência.
- * @param {HTMLElement} tableBodyElement - O elemento <tbody> da tabela de divergências.
+ * Converte um número de data do Excel para uma string de data formatada (DD/MM/AAAA).
+ * @param {number} excelDate - O número de data do Excel.
+ * @returns {string} - A string de data formatada.
  */
-export function renderSupplierDivergenceTable(divergences, tableBodyElement) {
-    tableBodyElement.innerHTML = ''; // Limpa a tabela antes de preencher
+function formatExcelDate(excelDate) {
+    if (typeof excelDate !== 'number' || excelDate <= 0) {
+        return '';
+    }
+    const date = new Date(Date.UTC(0, 0, excelDate - 1));
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+}
 
-    if (divergences.length === 0) {
+/**
+ * Renderiza a tabela de equipamentos com divergência.
+ * @param {Array<Object>} divergenceData - O array de objetos de dados de divergência.
+ * @param {HTMLElement} tableBodyElement - O elemento <tbody> da tabela de divergência.
+ */
+export function renderDivergenceTable(divergenceData, tableBodyElement) {
+    tableBodyElement.innerHTML = '';
+
+    const divergenceCountSpan = document.getElementById('divergenceCount');
+    if (divergenceData.length === 0) {
         const row = tableBodyElement.insertRow();
         const cell = row.insertCell();
-        cell.colSpan = 3; // Cobre todas as colunas da tabela de divergências
-        cell.textContent = 'Nenhuma divergência de número de série encontrada nas listas dos fornecedores.';
+        cell.colSpan = 3;
+        cell.textContent = 'Nenhum equipamento com divergência encontrado.';
         cell.style.textAlign = 'center';
-        document.getElementById('divergenceCount').textContent = `Total: 0 divergências`;
+        divergenceCountSpan.textContent = `Total: 0 divergências`;
         return;
     }
 
-    divergences.forEach(divergence => {
+    divergenceData.forEach(item => {
         const row = tableBodyElement.insertRow();
-        row.insertCell().textContent = divergence.fornecedor;
-        row.insertCell().textContent = divergence.numeroSerieDivergente;
-        row.insertCell().textContent = divergence.arquivoOrigem;
+        row.classList.add('divergence-dhme');
+        
+        row.insertCell().textContent = item['Número de Série'] ?? '';
+        row.insertCell().textContent = item['Fornecedor'] ?? '';
+        row.insertCell().textContent = formatExcelDate(item['Data de Calibração']) ?? '';
     });
 
-    document.getElementById('divergenceCount').textContent = `Total: ${divergences.length} divergências`;
+    divergenceCountSpan.textContent = `Total: ${divergenceData.length} divergências`;
 }

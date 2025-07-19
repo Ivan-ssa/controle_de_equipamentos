@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard de Equipamentos </title>
+    <title>Dashboard de Equipamentos</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
     <header class="main-header">
-        <h1>Dashboard de Equipamentos v.0.0.0.14</h1>
+        <h1>Dashboard de Equipamentos v.0.0.0.15</h1>
     </header>
     <main class="container">
         <section class="controls-section">
@@ -36,6 +36,10 @@
                 </select>
                 <select id="calibrationStatusFilter">
                     <option value="">Status da Calibração</option>
+                    <option value="Calibrado (Consolidado)">Calibrado (Consolidado)</option>
+                    <option value="Divergência (Todos Fornecedores)">Divergência (Todos Fornecedores)</option>
+                    <option value="Não Calibrado/Não Encontrado (Seu Cadastro)">Não Calibrado/Não Encontrado (Seu Cadastro)</option>
+                    <option value="Calibrado (Total)">Calibrado (Total)</option>
                 </select>
                 <select id="maintenanceFilter">
                     <option value="">Todos os Status de Manutenção</option>
@@ -91,6 +95,23 @@
                 </table>
             </div>
             <button id="exportOsButton" class="export-button">Exportar OS (Excel)</button>
+        </section>
+
+        <section id="divergenceSection" class="table-section hidden">
+            <h2>Equipamentos com Divergência <span id="divergenceCount">Total: 0 divergências</span></h2>
+            <div class="table-wrapper">
+                <table id="divergenceTable" class="styled-table">
+                    <thead>
+                        <tr>
+                            <th>Número de Série</th>
+                            <th>Fornecedor</th>
+                            <th>Data de Calibração</th>
+                        </tr>
+                    </thead>
+                    <tbody id="divergenceTableBody"></tbody>
+                </table>
+            </div>
+            <button id="exportDivergenceButton" class="export-button">Exportar Divergências (Excel)</button>
         </section>
         
         <section id="rondaSection" class="table-section hidden">
