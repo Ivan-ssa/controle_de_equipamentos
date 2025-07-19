@@ -226,6 +226,8 @@ function setupHeaderFilters(equipments) {
         'Nº Série': { prop: 'Nº Série', type: 'text' },
         'Patrimônio': { prop: 'Patrimônio', type: 'text' },
         'Status Calibração': { prop: 'Status Calibração', type: 'select_multiple' }, 
+        // Adicione esta nova linha
+        'Data Calibração': { prop: 'Data Calibração', type: 'text' },
         'Data Vencimento Calibração': { prop: 'Data Vencimento Calibração', type: 'text' },
     };
 

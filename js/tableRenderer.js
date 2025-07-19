@@ -54,6 +54,10 @@ export function renderTable(filteredEquipments, tableBodyElement, consolidatedCa
         row.insertCell().textContent = eq['Patrimônio'] ?? '';
         row.insertCell().textContent = calibStatusCellText;
         row.insertCell().textContent = eq['Data Vencimento Calibração'] ?? '';
+        const dataCalib = consolidatedCalibratedMap.has(sn) ? consolidatedCalibratedMap.get(sn).dataCalibricao : '';
+row.insertCell().textContent = dataCalib;
+
+row.insertCell().textContent = eq['Data Vencimento Calibração'] ?? '';
     });
     updateEquipmentCount(filteredEquipments.length);
 }
