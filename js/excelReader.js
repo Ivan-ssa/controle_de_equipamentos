@@ -1,12 +1,12 @@
 // js/excelReader.js
 
 /**
- * Lê o conteúdo do primeiro arquivo Excel/CSV e retorna os dados da primeira aba
- * como um array de objetos.
+ * Lê o conteúdo de um arquivo Excel/CSV e retorna os dados de uma aba específica.
  * @param {File} file - O arquivo a ser lido.
+ * @param {string} [sheetName] - Opcional. O nome da aba a ser lida. Se não for fornecido, a primeira aba será usada.
  * @returns {Promise<Array<Object>>} - Uma Promise que resolve com os dados da planilha.
  */
-export function readExcelFile(file) {
+export function readExcelFile(file, sheetName) {
     return new Promise((resolve, reject) => {
         if (!file) {
             reject(new Error('Nenhum arquivo selecionado.'));
@@ -20,11 +20,15 @@ export function readExcelFile(file) {
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, { type: 'array' });
 
-                // Assume que a planilha principal é a primeira aba
-                const firstSheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[firstSheetName];
+                const targetSheetName = sheetName || workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[targetSheetName];
 
-                // Converte a planilha para um array de objetos JSON (o que já funcionava)
+                if (!worksheet) {
+                    console.warn(`Aviso: A aba '${targetSheetName}' não foi encontrada.`);
+                    resolve([]);
+                    return;
+                }
+
                 const jsonData = XLSX.utils.sheet_to_json(worksheet, { raw: true, defval: '' });
                 
                 resolve(jsonData);

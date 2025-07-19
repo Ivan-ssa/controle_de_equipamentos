@@ -27,6 +27,7 @@ window.consolidatedCalibrationsRawData = [];
 window.externalMaintenanceSNs = new Set(); 
 window.osRawData = []; 
 window.rondaData = []; 
+window.divergenceSNs = new Set();
 
 
 // Referências aos elementos do DOM
@@ -134,17 +135,16 @@ async function handleProcessFile() {
     try {
         outputDiv.textContent = `Lendo o arquivo: ${file.name}...`;
 
-        // Lê a primeira aba do arquivo como array de objetos (o que já funcionava)
+        // Lê a aba principal 'Equip_VBA'
         const rawData = await readExcelFile(file);
         
         if (rawData.length === 0) {
-            outputDiv.textContent = 'Nenhum dado encontrado na planilha.';
+            outputDiv.textContent = 'Nenhum dado encontrado na planilha principal.';
             return;
         }
 
-        outputDiv.textContent += `\n${rawData.length} linhas carregadas.`;
+        outputDiv.textContent += `\n${rawData.length} equipamentos da planilha principal carregados.`;
         
-        // 1. Processa todos os equipamentos da planilha principal
         allEquipments = rawData;
         const mainEquipmentsBySN = new Map();
         const mainEquipmentsByPatrimonio = new Map();
@@ -155,7 +155,19 @@ async function handleProcessFile() {
             if (patrimonio) mainEquipmentsByPatrimonio.set(patrimonio, eq);
         });
 
-        // 2. Preenche os mapas e sets com base nas colunas da planilha principal
+        // 2. Lê a aba de Divergência
+        window.divergenceSNs.clear();
+        outputDiv.textContent += `\nLendo a aba 'Divergencia' (Divergências)...`;
+        const rawDivergenceData = await readExcelFile(file, 'Divergencia');
+        rawDivergenceData.forEach(item => {
+            const sn = normalizeId(item['Número de Série'] || item.NumeroSerie);
+            if (sn) {
+                window.divergenceSNs.add(sn);
+            }
+        });
+        outputDiv.textContent += `\n${window.divergenceSNs.size} SNs com divergência encontrados.`;
+
+        // 3. Lê a aba de Calibração
         window.consolidatedCalibratedMap.clear();
         window.externalMaintenanceSNs.clear();
         window.osRawData = [];
@@ -213,7 +225,6 @@ async function handleProcessFile() {
     }
 }
 
-// ...código anterior...
 
 function setupHeaderFilters(equipments) {
     headerFiltersRow.innerHTML = ''; 
