@@ -1,3 +1,4 @@
+//main.js
 import { applyFilters } from './filterLogic.js';
 
 let allData = [];
@@ -116,4 +117,28 @@ async function readEquipmentsFromExcel(file) {
         reader.onerror = reject;
         reader.readAsArrayBuffer(file);
     });
+}
+function renderOSTable(data) {
+    const osTableBody = document.querySelector("#osTable tbody");
+    osTableBody.innerHTML = "";
+
+    const osData = data.filter(row => row["OS aberta calibração"]);
+
+    osData.forEach(row => {
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+            <td>${row["OS aberta calibração"] || ""}</td>
+            <td>${row["Patrimônio"] || ""}</td>
+            <td>${row["Nº Série"] || ""}</td>
+            <td>${row["Equipamento"] || ""}</td>
+            <td>${row["Modelo"] || ""}</td>
+            <td>${row["Fabricante"] || ""}</td>
+            <td>${row["Setor"] || ""}</td>
+        `;
+
+        osTableBody.appendChild(tr);
+    });
+
+    document.getElementById("osCount").innerText = `Total: ${osData.length} OS`;
 }
