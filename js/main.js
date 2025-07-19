@@ -160,22 +160,22 @@ async function handleProcessFile() {
         window.osRawData = [];
 
         allEquipments.forEach(item => {
-            // Lógica para Calibração - Agora buscando pelos nomes EXATOS das colunas
+            // Lógica para Calibração
             const sn = normalizeId(item['Nº Série'] || item.NumeroSerie);
             const fornecedor = String(item['Fornecedor'] || '').trim();
             const dataCalib = item['Data Calibração']; 
 
-            if (sn && fornecedor !== '') { // Verifica se a string do fornecedor não está vazia
+            if (sn && fornecedor !== '') { 
                 window.consolidatedCalibratedMap.set(sn, { fornecedor, dataCalibricao: dataCalib });
             }
 
-            // Lógica para Manutenção Externa - Agora buscando pelo nome EXATO da coluna
+            // Lógica para Manutenção Externa - Agora mais flexível
             const manutencaoExterna = String(item['Manutenção Externa'] || '').trim().toLowerCase();
-            if (sn && manutencaoExterna === 'em manutenção') {
+            if (sn && (manutencaoExterna === 'em manutenção' || manutencaoExterna.includes('manutenção'))) {
                 window.externalMaintenanceSNs.add(sn);
             }
 
-            // Lógica para OS em Aberto - Agora buscando pelo nome EXATO da coluna
+            // Lógica para OS em Aberto
             const osNumero = String(item['OS'] || '').trim();
             if (osNumero !== '') {
                 window.osRawData.push(item);
@@ -211,7 +211,6 @@ async function handleProcessFile() {
         console.error('Erro ao processar arquivos:', error);
     }
 }
-
 
 function setupHeaderFilters(equipments) {
     headerFiltersRow.innerHTML = ''; 
