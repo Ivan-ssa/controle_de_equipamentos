@@ -77,3 +77,6 @@ tr.em-manutencao td {
     color: red;
     font-style: italic;
 }
+.linha-calibrada {
+  background-color: #5ae07a !important;
+}
