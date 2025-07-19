@@ -32,17 +32,17 @@ function renderEquipmentTable(data) {
   data.forEach(row => {
     const tr = document.createElement('tr');
 
-    const fornecedor = row['Fornecedor'] || '';
+    const fornecedor = row['Fornecedor']?.trim() || '';
     const dataCalibracao = row['data calibração'] ? formatDate(row['data calibração']) : '';
 
-    // Status calibração mostra nome da empresa ou 'Não encontrado'
-    let statusCalibracao = fornecedor || 'Não encontrado';
+    // Mostrar só o nome da empresa, sem "Não encontrado"
+    const statusCalibracao = fornecedor; // vazio se não tem empresa
 
-    // Fundo verde para calibrados
-    if (fornecedor && dataCalibracao) {
-      tr.style.backgroundColor = '#d4edda'; // verde claro
+    // Linha verde somente se tem empresa (calibrado)
+    if (fornecedor) {
+      tr.style.backgroundColor = '#d4edda'; // verde claro para calibrado
     } else {
-      tr.style.backgroundColor = ''; // sem cor para não calibrado
+      tr.style.backgroundColor = ''; // sem cor se não calibrado
     }
 
     const isManutencao = row['manu_externa'];
@@ -60,7 +60,7 @@ function renderEquipmentTable(data) {
     `;
 
     if (isManutencao) {
-      tr.classList.add('em-manutencao'); // para deixar texto em vermelho e itálico via CSS
+      tr.classList.add('em-manutencao'); // mantém estilo em vermelho itálico se tiver manutenção
     }
 
     tableBody.appendChild(tr);
@@ -68,6 +68,7 @@ function renderEquipmentTable(data) {
 
   document.getElementById('equipmentCount').innerText = `Total: ${data.length} equipamentos`;
 }
+
 
 function renderOSTable(data) {
   const tableBody = document.querySelector('#osTable tbody');
