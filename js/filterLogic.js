@@ -1,4 +1,4 @@
-// ...código anterior...
+// js/filterLogic.js
 
 /**
  * Aplica os filtros nos dados de equipamentos.
@@ -18,6 +18,8 @@ export function applyFilters(allEquipments, filters, normalizeId) {
         if (filters.calibrationStatus) {
             const sn = normalizeId(eq['Nº Série'] || eq.NumeroSerie);
             const isCalibratedConsolidated = window.consolidatedCalibratedMap.has(sn);
+            const isInDivergence = window.divergenceSNs.has(sn); // Nova verificação de divergência
+
             let calibStatusText = 'Não Calibrado/Não Encontrado (Seu Cadastro)';
             
             if (isCalibratedConsolidated) {
@@ -25,8 +27,25 @@ export function applyFilters(allEquipments, filters, normalizeId) {
             } else if (String(eq['Status Calibração']).trim() !== '') {
                  calibStatusText = 'Calibrado (Total)';
             }
+            
+            // Lógica para o filtro de divergência
+            if (filters.calibrationStatus.startsWith('Divergência')) {
+                const parts = filters.calibrationStatus.split('(');
+                const fornecedorFilter = parts.length > 1 ? parts[1].replace(')', '').trim() : 'Todos Fornecedores';
 
-            if (filters.calibrationStatus !== calibStatusText) {
+                // Se o filtro for para "Todos os Fornecedores" ou um fornecedor específico
+                if (fornecedorFilter === 'Todos Fornecedores') {
+                    if (!isInDivergence) {
+                        return false;
+                    }
+                } else {
+                    // Lógica para filtrar por fornecedor específico em divergência (se a sua aba de divergência tiver essa coluna)
+                    // Atualmente, estamos apenas verificando se o SN está na lista de divergência.
+                    if (!isInDivergence) {
+                        return false;
+                    }
+                }
+            } else if (filters.calibrationStatus !== calibStatusText) {
                 return false;
             }
         }
