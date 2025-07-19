@@ -2,9 +2,9 @@
 
 /**
  * Lê o conteúdo do primeiro arquivo Excel/CSV e retorna os dados da primeira aba
- * como um array de arrays (AoA).
+ * como um array de objetos.
  * @param {File} file - O arquivo a ser lido.
- * @returns {Promise<Array<Array<any>>>} - Uma Promise que resolve com os dados da planilha.
+ * @returns {Promise<Array<Object>>} - Uma Promise que resolve com os dados da planilha.
  */
 export function readExcelFile(file) {
     return new Promise((resolve, reject) => {
@@ -24,8 +24,8 @@ export function readExcelFile(file) {
                 const firstSheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[firstSheetName];
 
-                // Converte a planilha para um array de arrays (AoA)
-                const jsonData = XLSX.utils.sheet_to_aoa(worksheet, { header: 1 });
+                // Converte a planilha para um array de objetos JSON (o que já funcionava)
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { raw: true, defval: '' });
                 
                 resolve(jsonData);
             } catch (error) {

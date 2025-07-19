@@ -2,29 +2,12 @@
 
 /**
  * Renderiza a tabela principal de equipamentos.
- * @param {Array<Array<any>>} filteredEquipments - O array de arrays de equipamentos.
+ * @param {Array<Object>} filteredEquipments - O array de objetos de equipamentos.
  * @param {HTMLElement} tableBodyElement - O elemento <tbody> da tabela de equipamentos.
  * @param {Map<string, Object>} consolidatedCalibratedMap - Mapa de SN -> { fornecedor, dataCalibracao }.
  * @param {Set<string>} externalMaintenanceSNs - Set de SNs em manutenção externa.
  */
 export function renderTable(filteredEquipments, tableBodyElement, consolidatedCalibratedMap, externalMaintenanceSNs) {
-    // Mapa de colunas para o array de arrays (AoA)
-    const COLUMNS = {
-        TAG: 0,
-        EQUIPAMENTO: 1,
-        MODELO: 2,
-        FABRICANTE: 3,
-        SETOR: 4,
-        NUMERO_SERIE: 5,
-        PATRIMONIO: 6,
-        STATUS_CALIBRACAO: 7,
-        DATA_VENCIMENTO_CALIBRACAO: 8,
-        FORNECEDOR: 9,
-        DATA_CALIBRACAO: 10,
-        MANUTENCAO_EXTERNA: 11,
-        OS: 12
-    };
-
     tableBodyElement.innerHTML = '';
     
     if (filteredEquipments.length === 0) {
@@ -39,10 +22,10 @@ export function renderTable(filteredEquipments, tableBodyElement, consolidatedCa
 
     filteredEquipments.forEach(eq => {
         const row = tableBodyElement.insertRow();
-        const sn = String(eq[COLUMNS.NUMERO_SERIE] || '').trim().toLowerCase();
+        const sn = String(eq['Nº Série'] || eq.NumeroSerie || '').trim().toLowerCase();
 
         // Lógica de status de calibração
-        let calibStatusCellText = eq[COLUMNS.STATUS_CALIBRACAO] ?? '';
+        let calibStatusCellText = eq['Status Calibração'] ?? '';
         let isCalibratedConsolidated = consolidatedCalibratedMap.has(sn);
         
         if (isCalibratedConsolidated) {
@@ -62,15 +45,15 @@ export function renderTable(filteredEquipments, tableBodyElement, consolidatedCa
             row.classList.add('in-external-maintenance');
         }
 
-        row.insertCell().textContent = eq[COLUMNS.TAG] ?? '';
-        row.insertCell().textContent = eq[COLUMNS.EQUIPAMENTO] ?? '';
-        row.insertCell().textContent = eq[COLUMNS.MODELO] ?? '';
-        row.insertCell().textContent = eq[COLUMNS.FABRICANTE] ?? '';
-        row.insertCell().textContent = eq[COLUMNS.SETOR] ?? '';
-        row.insertCell().textContent = eq[COLUMNS.NUMERO_SERIE] ?? '';
-        row.insertCell().textContent = eq[COLUMNS.PATRIMONIO] ?? '';
+        row.insertCell().textContent = eq['TAG'] ?? '';
+        row.insertCell().textContent = eq['Equipamento'] ?? '';
+        row.insertCell().textContent = eq['Modelo'] ?? '';
+        row.insertCell().textContent = eq['Fabricante'] ?? '';
+        row.insertCell().textContent = eq['Setor'] ?? '';
+        row.insertCell().textContent = eq['Nº Série'] ?? '';
+        row.insertCell().textContent = eq['Patrimônio'] ?? '';
         row.insertCell().textContent = calibStatusCellText;
-        row.insertCell().textContent = eq[COLUMNS.DATA_VENCIMENTO_CALIBRACAO] ?? '';
+        row.insertCell().textContent = eq['Data Vencimento Calibração'] ?? '';
     });
     updateEquipmentCount(filteredEquipments.length);
 }
@@ -85,15 +68,13 @@ export function updateEquipmentCount(count) {
 
 /**
  * Popula o dropdown de setores com base nos dados.
- * @param {Array<Array<any>>} allEquipments - O array de arrays de equipamentos.
+ * @param {Array<Object>} allEquipments - O array de objetos de equipamentos.
  * @param {HTMLElement} selectElement - O elemento <select> de setor.
  */
 export function populateSectorFilter(allEquipments, selectElement) {
-    const COLUMNS = { SETOR: 4 };
-
     const uniqueSectors = new Set(
         allEquipments
-            .map(eq => String(eq[COLUMNS.SETOR] || '').trim())
+            .map(eq => String(eq['Setor'] || '').trim())
             .filter(sector => sector !== '')
     );
     

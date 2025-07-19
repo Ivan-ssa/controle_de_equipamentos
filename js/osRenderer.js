@@ -3,10 +3,10 @@
 /**
  * Renderiza a tabela de Ordens de Serviço (OS) em aberto.
  * Cruza dados da OS com os status de calibração e manutenção dos equipamentos principais.
- * @param {Array<Array<any>>} osData - O array de arrays de dados da OS.
+ * @param {Array<Object>} osData - O array de objetos de dados da OS.
  * @param {HTMLElement} tableBodyElement - O elemento <tbody> da tabela de OS.
- * @param {Map<string, Array<any>>} mainEquipmentsBySN - Mapa de SN (normalizado) para o objeto do equipamento principal.
- * @param {Map<string, Array<any>>} mainEquipmentsByPatrimonio - Mapa de Patrimônio (normalizado) para o objeto do equipamento principal.
+ * @param {Map<string, Object>} mainEquipmentsBySN - Mapa de SN (normalizado) para o objeto do equipamento principal.
+ * @param {Map<string, Object>} mainEquipmentsByPatrimonio - Mapa de Patrimônio (normalizado) para o objeto do equipamento principal.
  * @param {Map<string, Object>} consolidatedCalibratedMap - Mapa SN -> { fornecedor, dataCalibracao }.
  * @param {Set<string>} externalMaintenanceSNs - Set de SNs em manutenção externa.
  * @param {Function} normalizeId - Função utilitária para normalizar IDs (removendo zeros à esquerda).
@@ -20,23 +20,6 @@ export function renderOsTable(
     externalMaintenanceSNs,
     normalizeId 
 ) {
-    // Mapa de colunas para o array de arrays (AoA)
-    const COLUMNS = {
-        TAG: 0,
-        EQUIPAMENTO: 1,
-        MODELO: 2,
-        FABRICANTE: 3,
-        SETOR: 4,
-        NUMERO_SERIE: 5,
-        PATRIMONIO: 6,
-        STATUS_CALIBRACAO: 7,
-        DATA_VENCIMENTO_CALIBRACAO: 8,
-        FORNECEDOR: 9,
-        DATA_CALIBRACAO: 10,
-        MANUTENCAO_EXTERNA: 11,
-        OS: 12
-    };
-
     tableBodyElement.innerHTML = ''; 
 
     if (osData.length === 0) {
@@ -51,8 +34,8 @@ export function renderOsTable(
 
     let osCount = 0;
     osData.forEach(os => {
-        const osSN = normalizeId(os[COLUMNS.NUMERO_SERIE]); 
-        const osPatrimonio = normalizeId(os[COLUMNS.PATRIMONIO]); 
+        const osSN = normalizeId(os['Nº Série'] || os.NumeroSerie); 
+        const osPatrimonio = normalizeId(os['Patrimônio'] || os.Patrimonio); 
 
         const correspondingEquipment = mainEquipmentsBySN.get(osSN) || mainEquipmentsByPatrimonio.get(osPatrimonio);
 
@@ -60,13 +43,13 @@ export function renderOsTable(
         let osStatusManutencao = 'N/A'; 
 
         if (correspondingEquipment) {
-            const equipmentMainSN = normalizeId(correspondingEquipment[COLUMNS.NUMERO_SERIE]); 
+            const equipmentMainSN = normalizeId(correspondingEquipment['Nº Série'] || correspondingEquipment.NumeroSerie); 
 
             const calibInfo = consolidatedCalibratedMap.get(equipmentMainSN);
             if (calibInfo) {
                 osStatusCalib = `Calibrado (${calibInfo.fornecedor})`; 
             } else {
-                const originalCalibStatusLower = String(correspondingEquipment[COLUMNS.STATUS_CALIBRACAO] || '').toLowerCase();
+                const originalCalibStatusLower = String(correspondingEquipment['Status Calibração'] || '').toLowerCase();
                 if (originalCalibStatusLower.includes('não calibrado') || originalCalibStatusLower.includes('não cadastrado')) {
                     osStatusCalib = 'Não Calibrado/Não Encontrado (Seu Cadastro)';
                 } else if (originalCalibStatusLower.includes('calibrado (total)')) {
@@ -99,14 +82,14 @@ export function renderOsTable(
             row.classList.add('in-external-maintenance'); 
         }
 
-        row.insertCell().textContent = os[COLUMNS.OS] ?? '';
-        row.insertCell().textContent = os[COLUMNS.PATRIMONIO] ?? ''; 
-        row.insertCell().textContent = os[COLUMNS.NUMERO_SERIE] ?? ''; 
-        row.insertCell().textContent = os[COLUMNS.EQUIPAMENTO] ?? '';
-        row.insertCell().textContent = os[COLUMNS.MODELO] ?? '';
-        row.insertCell().textContent = os[COLUMNS.FABRICANTE] ?? '';
+        row.insertCell().textContent = os['OS'] ?? '';
+        row.insertCell().textContent = os['Patrimônio'] ?? ''; 
+        row.insertCell().textContent = os['Nº Série'] ?? ''; 
+        row.insertCell().textContent = os['Equipamento'] ?? '';
+        row.insertCell().textContent = os['Modelo'] ?? '';
+        row.insertCell().textContent = os['Fabricante'] ?? '';
         
-        row.insertCell().textContent = correspondingEquipment ? correspondingEquipment[COLUMNS.SETOR] ?? 'Não Cadastrado' : 'Não Cadastrado';
+        row.insertCell().textContent = correspondingEquipment ? correspondingEquipment['Setor'] ?? 'Não Cadastrado' : 'Não Cadastrado';
     });
 
     document.getElementById('osCount').textContent = `Total: ${osCount} OS`;

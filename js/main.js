@@ -7,25 +7,6 @@ import { renderOsTable } from './osRenderer.js';
 import { initRonda, loadExistingRonda, saveRonda, populateRondaSectorSelect } from './rondaManager.js'; 
 
 
-// =============================================================
-// MAPA DE COLUNAS - USAR ESTES NOMES NO CÓDIGO
-// =============================================================
-const COLUMNS = {
-    TAG: 0,
-    EQUIPAMENTO: 1,
-    MODELO: 2,
-    FABRICANTE: 3,
-    SETOR: 4,
-    NUMERO_SERIE: 5,
-    PATRIMONIO: 6,
-    STATUS_CALIBRACAO: 7,
-    DATA_VENCIMENTO_CALIBRACAO: 8,
-    FORNECEDOR: 9,
-    DATA_CALIBRACAO: 10,
-    MANUTENCAO_EXTERNA: 11,
-    OS: 12
-};
-
 // === FUNÇÃO DE NORMALIZAÇÃO DE NÚMERO DE SÉRIE / PATRIMÔNIO ===
 function normalizeId(id) {
     if (id === null || id === undefined) {
@@ -42,10 +23,11 @@ function normalizeId(id) {
 
 let allEquipments = [];
 window.consolidatedCalibratedMap = new Map(); 
+window.consolidatedCalibrationsRawData = []; 
 window.externalMaintenanceSNs = new Set(); 
 window.osRawData = []; 
 window.rondaData = []; 
-let headers = [];
+
 
 // Referências aos elementos do DOM
 const excelFileInput = document.getElementById('excelFileInput');
@@ -152,26 +134,23 @@ async function handleProcessFile() {
     try {
         outputDiv.textContent = `Lendo o arquivo: ${file.name}...`;
 
-        // Lê a primeira aba do arquivo como array de arrays
+        // Lê a primeira aba do arquivo como array de objetos (que já funcionava)
         const rawData = await readExcelFile(file);
         
-        if (rawData.length <= 1) { // Verifica se há pelo menos um cabeçalho e uma linha de dados
+        if (rawData.length === 0) {
             outputDiv.textContent = 'Nenhum dado encontrado na planilha.';
             return;
         }
 
-        // A primeira linha é o cabeçalho, as demais são os dados
-        headers = rawData[0];
-        allEquipments = rawData.slice(1);
+        outputDiv.textContent += `\n${rawData.length} linhas carregadas.`;
         
-        outputDiv.textContent += `\n${allEquipments.length} linhas de equipamentos carregadas.`;
-        
-        // 1. Mapeia os equipamentos para busca rápida usando os índices
+        // 1. Processa todos os equipamentos da planilha principal
+        allEquipments = rawData;
         const mainEquipmentsBySN = new Map();
         const mainEquipmentsByPatrimonio = new Map();
         allEquipments.forEach(eq => {
-            const sn = normalizeId(eq[COLUMNS.NUMERO_SERIE]); 
-            const patrimonio = normalizeId(eq[COLUMNS.PATRIMONIO]); 
+            const sn = normalizeId(eq['Nº Série'] || eq.NumeroSerie); 
+            const patrimonio = normalizeId(eq['Patrimônio'] || eq.Patrimonio); 
             if (sn) mainEquipmentsBySN.set(sn, eq);
             if (patrimonio) mainEquipmentsByPatrimonio.set(patrimonio, eq);
         });
@@ -182,37 +161,38 @@ async function handleProcessFile() {
         window.osRawData = [];
 
         allEquipments.forEach(item => {
-            // Lógica para Calibração - Usando índices fixos
-            const sn = normalizeId(item[COLUMNS.NUMERO_SERIE]);
-            const fornecedor = String(item[COLUMNS.FORNECEDOR] || '').trim();
-            const dataCalib = item[COLUMNS.DATA_CALIBRACAO]; 
+            // Lógica para Calibração
+            const sn = normalizeId(item['Nº Série'] || item.NumeroSerie);
+            const fornecedor = String(item['Fornecedor'] || '').trim();
+            const dataCalib = item['Data Calibração']; 
 
             if (sn && fornecedor !== '') { 
                 window.consolidatedCalibratedMap.set(sn, { fornecedor, dataCalibricao: dataCalib });
             }
 
-            // Lógica para Manutenção Externa - Usando índices fixos
-            const manutencaoExterna = String(item[COLUMNS.MANUTENCAO_EXTERNA] || '').trim().toLowerCase();
-            if (sn && manutencaoExterna.includes('manutenção')) {
+            // Lógica para Manutenção Externa
+            const manutencaoExterna = String(item['Manutenção Externa'] || '').trim().toLowerCase();
+            if (sn && (manutencaoExterna.includes('manutenção'))) {
                 window.externalMaintenanceSNs.add(sn);
             }
 
-            // Lógica para OS em Aberto - Usando índices fixos
-            const osNumero = String(item[COLUMNS.OS] || '').trim();
+            // Lógica para OS em Aberto
+            const osNumero = String(item['OS'] || '').trim();
             if (osNumero !== '') {
                 window.osRawData.push(item);
             }
         });
 
+        outputDiv.textContent += `\n${allEquipments.length} equipamentos carregados.`;
         outputDiv.textContent += `\n${window.consolidatedCalibratedMap.size} SNs de calibração consolidados.`;
         outputDiv.textContent += `\n${window.externalMaintenanceSNs.size} SNs em manutenção externa.`;
         outputDiv.textContent += `\n${window.osRawData.length} OS abertas.`;
 
         outputDiv.textContent = 'Processamento concluído. Renderizando tabelas...';
-        applyAllFiltersAndRender(headers); 
+        applyAllFiltersAndRender(); 
         populateSectorFilter(allEquipments, sectorFilter); 
         populateCalibrationStatusFilter(window.consolidatedCalibrationsRawData); 
-        setupHeaderFilters(allEquipments, headers);
+        setupHeaderFilters(allEquipments);
 
         renderOsTable(
             window.osRawData,
@@ -234,19 +214,19 @@ async function handleProcessFile() {
 }
 
 
-function setupHeaderFilters(equipments, headers) {
+function setupHeaderFilters(equipments) {
     headerFiltersRow.innerHTML = ''; 
 
     const headerFilterMap = {
-        'TAG': { prop: 'TAG', index: COLUMNS.TAG, type: 'text' },
-        'Equipamento': { prop: 'Equipamento', index: COLUMNS.EQUIPAMENTO, type: 'select_multiple' }, 
-        'Modelo': { prop: 'Modelo', index: COLUMNS.MODELO, type: 'select_multiple' },         
-        'Fabricante': { prop: 'Fabricante', index: COLUMNS.FABRICANTE, type: 'select_multiple' },     
-        'Setor': { prop: 'Setor', index: COLUMNS.SETOR, type: 'select_multiple' },             
-        'Nº Série': { prop: 'Nº Série', index: COLUMNS.NUMERO_SERIE, type: 'text' },
-        'Patrimônio': { prop: 'Patrimônio', index: COLUMNS.PATRIMONIO, type: 'text' },
-        'Status Calibração': { prop: 'Status Calibração', index: COLUMNS.STATUS_CALIBRACAO, type: 'select_multiple' }, 
-        'Data Vencimento Calibração': { prop: 'Data Vencimento Calibração', index: COLUMNS.DATA_VENCIMENTO_CALIBRACAO, type: 'text' },
+        'TAG': { prop: 'TAG', type: 'text' },
+        'Equipamento': { prop: 'Equipamento', type: 'select_multiple' }, 
+        'Modelo': { prop: 'Modelo', type: 'select_multiple' },         
+        'Fabricante': { prop: 'Fabricante', type: 'select_multiple' },     
+        'Setor': { prop: 'Setor', type: 'select_multiple' },             
+        'Nº Série': { prop: 'Nº Série', type: 'text' },
+        'Patrimônio': { prop: 'Patrimônio', type: 'text' },
+        'Status Calibração': { prop: 'Status Calibração', type: 'select_multiple' }, 
+        'Data Vencimento Calibração': { prop: 'Data Vencimento Calibração', type: 'text' },
     };
 
     const originalHeaders = document.querySelectorAll('#equipmentTable thead tr:first-child th');
@@ -284,8 +264,8 @@ function setupHeaderFilters(equipments, headers) {
                 equipments.forEach(eq => {
                     let value;
                     if (columnInfo.prop === 'Status Calibração') {
-                        const calibInfo = window.consolidatedCalibratedMap.get(normalizeId(eq[COLUMNS.NUMERO_SERIE]));
-                        value = calibInfo ? 'Calibrado (Consolidado)' : (String(eq[COLUMNS.STATUS_CALIBRACAO] || '').toLowerCase().includes('não calibrado') || String(eq[COLUMNS.STATUS_CALIBRACAO] || '').trim() === '' ? 'Não Calibrado/Não Encontrado (Seu Cadastro)' : 'Calibrado (Total)');
+                        const calibInfo = window.consolidatedCalibratedMap.get(normalizeId(eq['Nº Série'] || eq.NumeroSerie));
+                        value = calibInfo ? 'Calibrado (Consolidado)' : (String(eq['Status Calibração'] || '').toLowerCase().includes('não calibrado') || String(eq['Status Calibração'] || '').trim() === '' ? 'Não Calibrado/Não Encontrado (Seu Cadastro)' : 'Calibrado (Total)');
                     } else { value = eq[columnInfo.prop]; }
                     if (value && String(value).trim() !== '') {
                         uniqueValues.add(String(value).trim());
