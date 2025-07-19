@@ -9,54 +9,41 @@
  */
 export function applyFilters(allEquipments, filters, normalizeId) {
     return allEquipments.filter(eq => {
+        const sn = normalizeId(eq['Nº Série'] || eq.NumeroSerie);
+
         // Filtro de Setor
         if (filters.sector && String(eq['Setor']).trim() !== filters.sector.trim()) {
             return false;
         }
-
-        // Filtro de Status de Calibração
-        if (filters.calibrationStatus) {
-            const sn = normalizeId(eq['Nº Série'] || eq.NumeroSerie);
-            const isCalibratedConsolidated = window.consolidatedCalibratedMap.has(sn);
-            const isInDivergence = window.divergenceSNs.has(sn); // Nova verificação de divergência
-
-            let calibStatusText = 'Não Calibrado/Não Encontrado (Seu Cadastro)';
-            
-            if (isCalibratedConsolidated) {
-                calibStatusText = 'Calibrado (Consolidado)';
-            } else if (String(eq['Status Calibração']).trim() !== '') {
-                 calibStatusText = 'Calibrado (Total)';
-            }
-            
-            // Lógica para o filtro de divergência
-            if (filters.calibrationStatus.startsWith('Divergência')) {
-                const parts = filters.calibrationStatus.split('(');
-                const fornecedorFilter = parts.length > 1 ? parts[1].replace(')', '').trim() : 'Todos Fornecedores';
-
-                // Se o filtro for para "Todos os Fornecedores" ou um fornecedor específico
-                if (fornecedorFilter === 'Todos Fornecedores') {
-                    if (!isInDivergence) {
-                        return false;
-                    }
-                } else {
-                    // Lógica para filtrar por fornecedor específico em divergência (se a sua aba de divergência tiver essa coluna)
-                    // Atualmente, estamos apenas verificando se o SN está na lista de divergência.
-                    if (!isInDivergence) {
-                        return false;
-                    }
-                }
-            } else if (filters.calibrationStatus !== calibStatusText) {
-                return false;
-            }
-        }
         
         // Filtro de Manutenção Externa
         if (filters.maintenance) {
-            const sn = normalizeId(eq['Nº Série'] || eq.NumeroSerie);
             const isInMaintenance = window.externalMaintenanceSNs.has(sn);
             const maintenanceFilterValue = filters.maintenance === 'manutencao_sim' ? true : false;
             if (isInMaintenance !== maintenanceFilterValue) {
                 return false;
+            }
+        }
+
+        // Filtro de status de calibração
+        if (filters.calibrationStatus) {
+            if (filters.calibrationStatus === 'Calibrado (Consolidado)') {
+                if (!window.consolidatedCalibratedMap.has(sn)) {
+                    return false;
+                }
+            } else if (filters.calibrationStatus.startsWith('Divergência')) {
+                // Lógica corrigida para o filtro de Divergência
+                if (!window.divergenceSNs.has(sn)) {
+                    return false;
+                }
+            } else if (filters.calibrationStatus === 'Não Calibrado/Não Encontrado (Seu Cadastro)') {
+                if (window.consolidatedCalibratedMap.has(sn) || (String(eq['Status Calibração']).trim() !== '')) {
+                    return false;
+                }
+            } else if (filters.calibrationStatus === 'Calibrado (Total)') {
+                if (window.consolidatedCalibratedMap.has(sn) || (String(eq['Status Calibração']).trim() === '')) {
+                    return false;
+                }
             }
         }
 
