@@ -1,6 +1,22 @@
 // js/tableRenderer.js
 
 /**
+ * Converte um número de data do Excel para uma string de data formatada (DD/MM/AAAA).
+ * @param {number} excelDate - O número de data do Excel.
+ * @returns {string} - A string de data formatada.
+ */
+function formatExcelDate(excelDate) {
+    if (typeof excelDate !== 'number' || excelDate <= 0) {
+        return '';
+    }
+    const date = new Date(Date.UTC(0, 0, excelDate - 1));
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+}
+
+/**
  * Renderiza a tabela principal de equipamentos.
  * @param {Array<Object>} filteredEquipments - O array de objetos de equipamentos.
  * @param {HTMLElement} tableBodyElement - O elemento <tbody> da tabela de equipamentos.
@@ -27,11 +43,13 @@ export function renderTable(filteredEquipments, tableBodyElement, consolidatedCa
         // Lógica de status de calibração
         let calibStatusCellText = eq['Status Calibração'] ?? '';
         let isCalibratedConsolidated = consolidatedCalibratedMap.has(sn);
+        let dataCalibracao = '';
         
         if (isCalibratedConsolidated) {
             row.classList.add('calibrated-dhme');
             const calibInfo = consolidatedCalibratedMap.get(sn);
-            calibStatusCellText = `Calibrado (${calibInfo.fornecedor})`;
+            calibStatusCellText = calibInfo.fornecedor; // Agora mostra só o nome do fornecedor
+            dataCalibracao = formatExcelDate(calibInfo.dataCalibricao);
         } else if (String(calibStatusCellText).toLowerCase().includes('não calibrado') || calibStatusCellText.trim() === '') {
             row.classList.add('not-calibrated');
             calibStatusCellText = 'Não Calibrado/Não Encontrado (Seu Cadastro)';
@@ -52,12 +70,9 @@ export function renderTable(filteredEquipments, tableBodyElement, consolidatedCa
         row.insertCell().textContent = eq['Setor'] ?? '';
         row.insertCell().textContent = eq['Nº Série'] ?? '';
         row.insertCell().textContent = eq['Patrimônio'] ?? '';
-        row.insertCell().textContent = calibStatusCellText;
-        row.insertCell().textContent = eq['Data Vencimento Calibração'] ?? '';
-        const dataCalib = consolidatedCalibratedMap.has(sn) ? consolidatedCalibratedMap.get(sn).dataCalibricao : '';
-row.insertCell().textContent = dataCalib;
-
-row.insertCell().textContent = eq['Data Vencimento Calibração'] ?? '';
+        row.insertCell().textContent = calibStatusCellText; // Célula Fornecedor
+        row.insertCell().textContent = dataCalibracao; // Célula Data Calibração
+        row.insertCell().textContent = formatExcelDate(eq['Data Vencimento Calibração']) ?? ''; // Célula Data Vencimento Calibração
     });
     updateEquipmentCount(filteredEquipments.length);
 }

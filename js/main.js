@@ -134,7 +134,7 @@ async function handleProcessFile() {
     try {
         outputDiv.textContent = `Lendo o arquivo: ${file.name}...`;
 
-        // Lê a primeira aba do arquivo como array de objetos (que já funcionava)
+        // Lê a primeira aba do arquivo como array de objetos (o que já funcionava)
         const rawData = await readExcelFile(file);
         
         if (rawData.length === 0) {
@@ -225,8 +225,7 @@ function setupHeaderFilters(equipments) {
         'Setor': { prop: 'Setor', type: 'select_multiple' },             
         'Nº Série': { prop: 'Nº Série', type: 'text' },
         'Patrimônio': { prop: 'Patrimônio', type: 'text' },
-        'Status Calibração': { prop: 'Status Calibração', type: 'select_multiple' }, 
-        // Adicione esta nova linha
+        'Fornecedor': { prop: 'Fornecedor', type: 'select_multiple' },
         'Data Calibração': { prop: 'Data Calibração', type: 'text' },
         'Data Vencimento Calibração': { prop: 'Data Vencimento Calibração', type: 'text' },
     };
@@ -265,9 +264,13 @@ function setupHeaderFilters(equipments) {
                 const uniqueValues = new Set();
                 equipments.forEach(eq => {
                     let value;
-                    if (columnInfo.prop === 'Status Calibração') {
-                        const calibInfo = window.consolidatedCalibratedMap.get(normalizeId(eq['Nº Série'] || eq.NumeroSerie));
-                        value = calibInfo ? 'Calibrado (Consolidado)' : (String(eq['Status Calibração'] || '').toLowerCase().includes('não calibrado') || String(eq['Status Calibração'] || '').trim() === '' ? 'Não Calibrado/Não Encontrado (Seu Cadastro)' : 'Calibrado (Total)');
+                    if (columnInfo.prop === 'Fornecedor') {
+                        const fornecedor = String(eq[columnInfo.prop] || '').trim();
+                        if (fornecedor) {
+                            value = 'Calibrado (Consolidado)';
+                        } else {
+                            value = 'Não Calibrado/Não Encontrado';
+                        }
                     } else { value = eq[columnInfo.prop]; }
                     if (value && String(value).trim() !== '') {
                         uniqueValues.add(String(value).trim());
