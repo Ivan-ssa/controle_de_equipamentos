@@ -24,45 +24,7 @@ document.getElementById("excelFileInput").addEventListener("change", async (even
     status.innerText = `Arquivo processado! Total de equipamentos: ${data.length}`;
 });
 
-function renderEquipmentTable(data) {
-    const tableBody = document.querySelector("#equipmentTable tbody");
-    tableBody.innerHTML = "";
 
-    data.forEach(row => {
-        const tr = document.createElement("tr");
-
-        const fornecedor = row["Fornecedor"] || "";
-        const dataCalibracao = row["data calibração"] ? formatDate(row["data calibração"]) : "";
-        const statusCalibracao = row["OS aberta calibração"]
-            ? "Não Calibrado"
-            : (fornecedor && dataCalibracao ? `${fornecedor} – ${dataCalibracao}` : "Não Calibrado/Não Encontrado");
-
-        const isManutencao = row["manu_externa"];
-
-        tr.innerHTML = `
-            <td>${row["TAG"] || ""}</td>
-            <td>${row["Equipamento"] || ""}</td>
-            <td>${row["Modelo"] || ""}</td>
-            <td>${row["Fabricante"] || ""}</td>
-            <td>${row["Setor"] || ""}</td>
-            <td>${row["Nº Série"] || ""}</td>
-            <td>${row["Patrimônio"] || ""}</td>
-            <td>${statusCalibracao}</td>
-            <td>${dataCalibracao}</td>
-        `;
-
-        if (isManutencao) {
-            tr.querySelectorAll("td").forEach(td => {
-                td.style.color = "red";
-                td.style.fontStyle = "italic";
-            });
-        }
-
-        tableBody.appendChild(tr);
-    });
-
-    document.getElementById("equipmentCount").innerText = `Total: ${data.length} equipamentos`;
-}
 
 function renderEquipmentTable(data) {
     const tableBody = document.querySelector("#equipmentTable tbody");
