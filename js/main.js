@@ -213,6 +213,7 @@ async function handleProcessFile() {
     }
 }
 
+// ...código anterior...
 
 function setupHeaderFilters(equipments) {
     headerFiltersRow.innerHTML = ''; 
@@ -263,15 +264,7 @@ function setupHeaderFilters(equipments) {
                 filterPopup.appendChild(optionsContainer);
                 const uniqueValues = new Set();
                 equipments.forEach(eq => {
-                    let value;
-                    if (columnInfo.prop === 'Fornecedor') {
-                        const fornecedor = String(eq[columnInfo.prop] || '').trim();
-                        if (fornecedor) {
-                            value = 'Calibrado (Consolidado)';
-                        } else {
-                            value = 'Não Calibrado/Não Encontrado';
-                        }
-                    } else { value = eq[columnInfo.prop]; }
+                    let value = eq[columnInfo.prop];
                     if (value && String(value).trim() !== '') {
                         uniqueValues.add(String(value).trim());
                     }

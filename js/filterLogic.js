@@ -1,45 +1,28 @@
-// js/filterLogic.js
+// ...código anterior...
 
 /**
  * Aplica os filtros nos dados de equipamentos.
- * @param {Array<Array<any>>} allEquipments - O array de arrays de equipamentos.
+ * @param {Array<Object>} allEquipments - O array de objetos de equipamentos.
  * @param {Object} filters - Os filtros a serem aplicados.
  * @param {Function} normalizeId - Função utilitária para normalizar IDs.
- * @returns {Array<Array<any>>} - O array de arrays de equipamentos filtrados.
+ * @returns {Array<Object>} - O array de objetos de equipamentos filtrados.
  */
 export function applyFilters(allEquipments, filters, normalizeId) {
-    // Mapa de colunas para o array de arrays (AoA)
-    const COLUMNS = {
-        TAG: 0,
-        EQUIPAMENTO: 1,
-        MODELO: 2,
-        FABRICANTE: 3,
-        SETOR: 4,
-        NUMERO_SERIE: 5,
-        PATRIMONIO: 6,
-        STATUS_CALIBRACAO: 7,
-        DATA_VENCIMENTO_CALIBRACAO: 8,
-        FORNECEDOR: 9,
-        DATA_CALIBRACAO: 10,
-        MANUTENCAO_EXTERNA: 11,
-        OS: 12
-    };
-
     return allEquipments.filter(eq => {
         // Filtro de Setor
-        if (filters.sector && String(eq[COLUMNS.SETOR]).trim() !== filters.sector.trim()) {
+        if (filters.sector && String(eq['Setor']).trim() !== filters.sector.trim()) {
             return false;
         }
 
         // Filtro de Status de Calibração
         if (filters.calibrationStatus) {
-            const sn = normalizeId(eq[COLUMNS.NUMERO_SERIE]);
+            const sn = normalizeId(eq['Nº Série'] || eq.NumeroSerie);
             const isCalibratedConsolidated = window.consolidatedCalibratedMap.has(sn);
             let calibStatusText = 'Não Calibrado/Não Encontrado (Seu Cadastro)';
             
             if (isCalibratedConsolidated) {
                 calibStatusText = 'Calibrado (Consolidado)';
-            } else if (String(eq[COLUMNS.STATUS_CALIBRACAO]).trim() !== '') {
+            } else if (String(eq['Status Calibração']).trim() !== '') {
                  calibStatusText = 'Calibrado (Total)';
             }
 
@@ -50,7 +33,7 @@ export function applyFilters(allEquipments, filters, normalizeId) {
         
         // Filtro de Manutenção Externa
         if (filters.maintenance) {
-            const sn = normalizeId(eq[COLUMNS.NUMERO_SERIE]);
+            const sn = normalizeId(eq['Nº Série'] || eq.NumeroSerie);
             const isInMaintenance = window.externalMaintenanceSNs.has(sn);
             const maintenanceFilterValue = filters.maintenance === 'manutencao_sim' ? true : false;
             if (isInMaintenance !== maintenanceFilterValue) {
@@ -61,9 +44,9 @@ export function applyFilters(allEquipments, filters, normalizeId) {
         // Filtro de busca de texto
         if (filters.search) {
             const searchNormalized = filters.search.toLowerCase();
-            const tagNormalized = normalizeId(eq[COLUMNS.TAG]);
-            const patrimonioNormalized = normalizeId(eq[COLUMNS.PATRIMONIO]);
-            const snNormalized = normalizeId(eq[COLUMNS.NUMERO_SERIE]);
+            const tagNormalized = normalizeId(eq['TAG']);
+            const patrimonioNormalized = normalizeId(eq['Patrimônio']);
+            const snNormalized = normalizeId(eq['Nº Série']);
 
             if (tagNormalized.includes(searchNormalized) ||
                 patrimonioNormalized.includes(searchNormalized) ||
@@ -79,7 +62,7 @@ export function applyFilters(allEquipments, filters, normalizeId) {
         for (const prop in headerFilters) {
             if (headerFilters.hasOwnProperty(prop)) {
                 const filterValue = headerFilters[prop];
-                const columnValue = String(eq[COLUMNS[prop.toUpperCase().replace(/\s/g, '_')]] || '').toLowerCase();
+                const columnValue = String(eq[prop] || '').toLowerCase();
                 
                 if (Array.isArray(filterValue)) {
                     // Filtro de múltipla seleção
