@@ -1,4 +1,3 @@
-// main.js
 import { applyFilters } from './filterLogic.js';
 
 let allData = [];
@@ -7,7 +6,6 @@ document.getElementById("excelFileInput").addEventListener("change", async (even
     const file = event.target.files[0];
     const status = document.getElementById("status");
     const tableBody = document.querySelector("#equipmentTable tbody");
-    const sectorFilter = document.getElementById("sectorFilter");
 
     if (!file) {
         status.innerText = "Nenhum arquivo selecionado.";
@@ -17,25 +15,30 @@ document.getElementById("excelFileInput").addEventListener("change", async (even
     status.innerText = "Lendo arquivo...";
 
     const data = await readEquipmentsFromExcel(file);
-    allData = data; // salvar dados globais para reuso
+    allData = data;
 
-    renderTable(data);
+    renderEquipmentTable(data);
+    renderOSTable(data);
     preencherFiltros(data);
 
     status.innerText = `Arquivo processado! Total de equipamentos: ${data.length}`;
-    updateCount(data.length);
 });
 
-function renderTable(data) {
+function renderEquipmentTable(data) {
     const tableBody = document.querySelector("#equipmentTable tbody");
     tableBody.innerHTML = "";
 
     data.forEach(row => {
         const tr = document.createElement("tr");
 
-        const vencimento = row["data calibração"] ? formatDate(row["data calibração"]) : "";
-        const statusCalibracao = row["OS aberta calibração"] ? "Não Calibrado" : "Calibrado (Total)";
-        
+        const fornecedor = row["Fornecedor"] || "";
+        const dataCalibracao = row["data calibração"] ? formatDate(row["data calibração"]) : "";
+        const statusCalibracao = row["OS aberta calibração"]
+            ? "Não Calibrado"
+            : (fornecedor && dataCalibracao ? `${fornecedor} – ${dataCalibracao}` : "Não Calibrado/Não Encontrado");
+
+        const isManutencao = row["manu_externa"];
+
         tr.innerHTML = `
             <td>${row["TAG"] || ""}</td>
             <td>${row["Equipamento"] || ""}</td>
@@ -45,18 +48,47 @@ function renderTable(data) {
             <td>${row["Nº Série"] || ""}</td>
             <td>${row["Patrimônio"] || ""}</td>
             <td>${statusCalibracao}</td>
-            <td>${vencimento}</td>
+            <td>${dataCalibracao}</td>
         `;
+
+        if (isManutencao) {
+            tr.querySelectorAll("td").forEach(td => {
+                td.style.color = "red";
+                td.style.fontStyle = "italic";
+            });
+        }
 
         tableBody.appendChild(tr);
     });
 
-    updateCount(data.length);
+    document.getElementById("equipmentCount").innerText = `Total: ${data.length} equipamentos`;
+}
+
+function renderOSTable(data) {
+    const osBody = document.querySelector("#osTable tbody");
+    osBody.innerHTML = "";
+
+    const osData = data.filter(row => row["OS aberta calibração"]);
+
+    osData.forEach(row => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>${row["OS aberta calibração"]}</td>
+            <td>${row["Patrimônio"] || ""}</td>
+            <td>${row["Nº Série"] || ""}</td>
+            <td>${row["Equipamento"] || ""}</td>
+            <td>${row["Modelo"] || ""}</td>
+            <td>${row["Fabricante"] || ""}</td>
+            <td>${row["Setor"] || ""}</td>
+        `;
+        osBody.appendChild(tr);
+    });
+
+    document.getElementById("osCount").innerText = `Total: ${osData.length} OS`;
 }
 
 function preencherFiltros(data) {
     const setorSelect = document.getElementById("sectorFilter");
-    const manutSelect = document.getElementById("maintenanceFilter");
     const rondaSelect = document.getElementById("rondaSectorSelect");
 
     const setores = new Set();
@@ -77,10 +109,6 @@ function preencherFiltros(data) {
         const option2 = option1.cloneNode(true);
         rondaSelect.appendChild(option2);
     });
-}
-
-function updateCount(count) {
-    document.getElementById("equipmentCount").innerText = `Total: ${count} equipamentos`;
 }
 
 function formatDate(excelDate) {
@@ -105,33 +133,4 @@ async function readEquipmentsFromExcel(file) {
         reader.onerror = reject;
         reader.readAsArrayBuffer(file);
     });
-}
-
-// Filtros
-document.getElementById("sectorFilter").addEventListener("change", aplicarTodosFiltros);
-document.getElementById("calibrationStatusFilter").addEventListener("change", aplicarTodosFiltros);
-document.getElementById("maintenanceFilter").addEventListener("change", aplicarTodosFiltros);
-document.getElementById("searchInput").addEventListener("input", aplicarTodosFiltros);
-
-function aplicarTodosFiltros() {
-    const setor = document.getElementById("sectorFilter").value;
-    const status = document.getElementById("calibrationStatusFilter").value;
-    const manut = document.getElementById("maintenanceFilter").value;
-    const busca = document.getElementById("searchInput").value.toLowerCase();
-
-    const filtrado = allData.filter(row => {
-        const setorOk = !setor || row["Setor"] === setor;
-        const statusCalibracao = row["OS aberta calibração"] ? "Não Calibrado" : "Calibrado (Total)";
-        const statusOk = !status || statusCalibracao === status;
-        const manutencao = row["manu_externa"] ? "Em Manutenção Externa" : "";
-        const manutOk = !manut || manutencao === manut;
-        const buscaOk =
-            row["Nº Série"]?.toLowerCase().includes(busca) ||
-            row["Patrimônio"]?.toLowerCase().includes(busca) ||
-            row["TAG"]?.toLowerCase().includes(busca);
-
-        return setorOk && statusOk && manutOk && (!busca || buscaOk);
-    });
-
-    renderTable(filtrado);
 }
