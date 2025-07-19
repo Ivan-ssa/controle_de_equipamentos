@@ -38,50 +38,24 @@ export function renderOsTable(
         const osPatrimonio = normalizeId(os['Patrimônio'] || os.Patrimonio); 
 
         const correspondingEquipment = mainEquipmentsBySN.get(osSN) || mainEquipmentsByPatrimonio.get(osPatrimonio);
-
-        let osStatusCalib = 'Não Encontrado'; 
-        let osStatusManutencao = 'N/A'; 
-
-        if (correspondingEquipment) {
-            const equipmentMainSN = normalizeId(correspondingEquipment['Nº Série'] || correspondingEquipment.NumeroSerie); 
-
-            const calibInfo = consolidatedCalibratedMap.get(equipmentMainSN);
-            if (calibInfo) {
-                osStatusCalib = `Calibrado (${calibInfo.fornecedor})`; 
-            } else {
-                const originalCalibStatusLower = String(correspondingEquipment['Status Calibração'] || '').toLowerCase();
-                if (originalCalibStatusLower.includes('não calibrado') || originalCalibStatusLower.includes('não cadastrado')) {
-                    osStatusCalib = 'Não Calibrado/Não Encontrado (Seu Cadastro)';
-                } else if (originalCalibStatusLower.includes('calibrado (total)')) {
-                    osStatusCalib = 'Calibrado (Total)';
-                } else {
-                    osStatusCalib = 'Desconhecido'; 
-                }
-            }
-
-            if (externalMaintenanceSNs.has(equipmentMainSN)) {
-                osStatusManutencao = 'Em Manutenção Externa'; 
-            } else {
-                osStatusManutencao = 'Não em Manutenção Externa'; 
-            }
-        } else {
-             osStatusCalib = 'Equip. Não Cadastrado';
-             osStatusManutencao = 'Equip. Não Cadastrado';
-        }
-
+        
         const row = tableBodyElement.insertRow();
         osCount++; 
 
-        if (osStatusCalib.includes('Calibrado (')) { 
-            row.classList.add('calibrated-dhme'); 
-        } else if (osStatusCalib.includes('Não Calibrado')) { 
-            row.classList.add('not-calibrated');
-        }
+        if (correspondingEquipment) {
+            const equipmentMainSN = normalizeId(correspondingEquipment['Nº Série'] || correspondingEquipment.NumeroSerie); 
+            
+            // Lógica para Calibração
+            if (consolidatedCalibratedMap.has(equipmentMainSN)) {
+                row.classList.add('calibrated-dhme'); 
+            }
 
-        if (osStatusManutencao.includes('Em Manutenção Externa')) {
-            row.classList.add('in-external-maintenance'); 
+            // Lógica para Manutenção Externa
+            if (externalMaintenanceSNs.has(equipmentMainSN)) {
+                row.classList.add('in-external-maintenance'); 
+            }
         }
-
+        
         row.insertCell().textContent = os['OS'] ?? '';
         row.insertCell().textContent = os['Patrimônio'] ?? ''; 
         row.insertCell().textContent = os['Nº Série'] ?? ''; 
