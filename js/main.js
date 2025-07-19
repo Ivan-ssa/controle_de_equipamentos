@@ -64,28 +64,49 @@ function renderEquipmentTable(data) {
     document.getElementById("equipmentCount").innerText = `Total: ${data.length} equipamentos`;
 }
 
-function renderOSTable(data) {
-    const osBody = document.querySelector("#osTable tbody");
-    osBody.innerHTML = "";
+function renderEquipmentTable(data) {
+    const tableBody = document.querySelector("#equipmentTable tbody");
+    tableBody.innerHTML = "";
 
-    const osData = data.filter(row => row["OS aberta calibração"]);
-
-    osData.forEach(row => {
+    data.forEach(row => {
         const tr = document.createElement("tr");
+
+        const fornecedor = row["Fornecedor"] || "";
+        const dataCalibracao = row["data calibração"] ? formatDate(row["data calibração"]) : "";
+
+        // Define status
+        let statusCalibracao = "Não Calibrado/Não Encontrado";
+        if (fornecedor && dataCalibracao) {
+            statusCalibracao = fornecedor;
+            tr.style.backgroundColor = "#d4edda"; // verde claro para calibrado
+        } else {
+            tr.style.backgroundColor = ""; // sem cor para não calibrado
+        }
+
+        const isManutencao = row["manu_externa"];
+
         tr.innerHTML = `
-            <td>${row["OS aberta calibração"]}</td>
-            <td>${row["Patrimônio"] || ""}</td>
-            <td>${row["Nº Série"] || ""}</td>
+            <td>${row["TAG"] || ""}</td>
             <td>${row["Equipamento"] || ""}</td>
             <td>${row["Modelo"] || ""}</td>
             <td>${row["Fabricante"] || ""}</td>
             <td>${row["Setor"] || ""}</td>
+            <td>${row["Nº Série"] || ""}</td>
+            <td>${row["Patrimônio"] || ""}</td>
+            <td>${statusCalibracao}</td>
+            <td>${dataCalibracao}</td>
         `;
-        osBody.appendChild(tr);
+
+        if (isManutencao) {
+            tr.classList.add("em-manutencao");
+        }
+
+        tableBody.appendChild(tr);
     });
 
-    document.getElementById("osCount").innerText = `Total: ${osData.length} OS`;
+    document.getElementById("equipmentCount").innerText = `Total: ${data.length} equipamentos`;
 }
+
 
 function preencherFiltros(data) {
     const setorSelect = document.getElementById("sectorFilter");
