@@ -4,6 +4,7 @@ import { readExcelFile } from './excelReader.js';
 import { renderTable, populateSectorFilter, updateEquipmentCount } from './tableRenderer.js';
 import { applyFilters } from './filterLogic.js';
 import { renderOsTable } from './osRenderer.js'; 
+import { renderDivergenceTable } from './divergenceRenderer.js';
 import { initRonda, loadExistingRonda, saveRonda, populateRondaSectorSelect } from './rondaManager.js'; 
 
 
@@ -28,6 +29,7 @@ window.externalMaintenanceSNs = new Set();
 window.osRawData = []; 
 window.rondaData = []; 
 window.divergenceSNs = new Set();
+window.rawDivergenceData = [];
 
 
 // Referências aos elementos do DOM
@@ -50,9 +52,11 @@ const headerFiltersRow = document.getElementById('headerFilters');
 const showEquipmentButton = document.getElementById('showEquipmentButton');
 const showOsButton = document.getElementById('showOsButton');
 const showRondaButton = document.getElementById('showRondaButton'); 
+const showDivergenceButton = document.getElementById('showDivergenceButton');
 const equipmentSection = document.getElementById('equipmentSection');
 const osSection = document.getElementById('osSection');
 const rondaSection = document.getElementById('rondaSection'); 
+const divergenceSection = document.getElementById('divergenceSection');
 
 // Elementos da seção de Ronda
 const rondaSectorSelect = document.getElementById('rondaSectorSelect');
@@ -62,12 +66,14 @@ const loadRondaButton = document.getElementById('loadRondaButton');
 const saveRondaButton = document.getElementById('saveRondaButton');
 const rondaTableBody = document.querySelector('#rondaTable tbody');
 const rondaCountSpan = document.getElementById('rondaCount');
+const divergenceTableBody = document.querySelector('#divergenceTable tbody');
 
 
 function toggleSectionVisibility(sectionToShowId) {
     if (equipmentSection) equipmentSection.classList.add('hidden');
     if (osSection) osSection.classList.add('hidden');
     if (rondaSection) rondaSection.classList.add('hidden'); 
+    if (divergenceSection) divergenceSection.classList.add('hidden');
 
     document.querySelectorAll('.toggle-section-button').forEach(button => {
         button.classList.remove('active');
@@ -82,6 +88,9 @@ function toggleSectionVisibility(sectionToShowId) {
     } else if (sectionToShowId === 'rondaSection' && rondaSection) { 
         rondaSection.classList.remove('hidden');
         if (showRondaButton) showRondaButton.classList.add('active');
+    } else if (sectionToShowId === 'divergenceSection' && divergenceSection) {
+        divergenceSection.classList.remove('hidden');
+        if (showDivergenceButton) showDivergenceButton.classList.add('active');
     }
 }
 
@@ -92,7 +101,6 @@ function populateCalibrationStatusFilter(rawCalibrationsData) {
     const fixedOptions = [
         { value: 'Calibrado (Consolidado)', text: 'Calibrado (Consolidado)' },
         { value: 'Calibrado (Total)', text: 'Calibrado (Total)' }, 
-        { value: 'Divergência (Todos Fornecedores)', text: 'Divergência (Todos Fornecedores)' },
         { value: 'Não Calibrado/Não Encontrado (Seu Cadastro)', text: 'Não Calibrado/Não Encontrado (Seu Cadastro)' },
     ];
     fixedOptions.forEach(opt => {
@@ -158,16 +166,16 @@ async function handleProcessFile() {
         // 2. Lê a aba de Divergência
         window.divergenceSNs.clear();
         outputDiv.textContent += `\nLendo a aba 'Divergencia' (Divergências)...`;
-        const rawDivergenceData = await readExcelFile(file, 'Divergencia');
-        rawDivergenceData.forEach(item => {
-            const sn = normalizeId(item['Número de Série'] || item.NumeroSerie);
+        window.rawDivergenceData = await readExcelFile(file, 'Divergencia');
+        window.rawDivergenceData.forEach(item => {
+            const sn = normalizeId(item['Número de Série'] || item.NumeroSerie || item['Nº Série'] || item['Numero de Serie'] || item['Numero Serie'] || item.SN);
             if (sn) {
                 window.divergenceSNs.add(sn);
             }
         });
         outputDiv.textContent += `\n${window.divergenceSNs.size} SNs com divergência encontrados.`;
 
-        // 3. Lê a aba de Calibração
+        // 3. Processa dados de Calibração, Manutenção e OS da planilha principal
         window.consolidatedCalibratedMap.clear();
         window.externalMaintenanceSNs.clear();
         window.osRawData = [];
@@ -195,7 +203,6 @@ async function handleProcessFile() {
             }
         });
 
-        outputDiv.textContent += `\n${allEquipments.length} equipamentos carregados.`;
         outputDiv.textContent += `\n${window.consolidatedCalibratedMap.size} SNs de calibração consolidados.`;
         outputDiv.textContent += `\n${window.externalMaintenanceSNs.size} SNs em manutenção externa.`;
         outputDiv.textContent += `\n${window.osRawData.length} OS abertas.`;
@@ -453,7 +460,7 @@ async function exportWithExcelJS(tableId, fileName) {
 // --- EVENT LISTENERS ---
 processButton.addEventListener('click', handleProcessFile);
 sectorFilter.addEventListener('change', applyAllFiltersAndRender); 
-calibrationStatusFilter.addEventListener('change', applyAllFiltersAndRender); 
+calibrationStatusFilter.addEventListener('change', applyAllFiltersAndRender);
 searchInput.addEventListener('keyup', applyAllFiltersAndRender);
 maintenanceFilter.addEventListener('change', applyAllFiltersAndRender); 
 
@@ -467,6 +474,10 @@ exportOsButton.addEventListener('click', () => {
 
 showEquipmentButton.addEventListener('click', () => toggleSectionVisibility('equipmentSection'));
 showOsButton.addEventListener('click', () => toggleSectionVisibility('osSection'));
+showDivergenceButton.addEventListener('click', () => {
+    toggleSectionVisibility('divergenceSection');
+    renderDivergenceTable(window.rawDivergenceData, divergenceTableBody);
+});
 showRondaButton.addEventListener('click', () => toggleSectionVisibility('rondaSection')); 
 
 startRondaButton.addEventListener('click', () => {
