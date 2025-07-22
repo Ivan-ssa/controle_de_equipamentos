@@ -22,14 +22,15 @@ function formatExcelDate(excelDate) {
  * @param {HTMLElement} tableBodyElement - O elemento <tbody> da tabela de equipamentos.
  * @param {Map<string, Object>} consolidatedCalibratedMap - Mapa de SN -> { fornecedor, dataCalibracao }.
  * @param {Set<string>} externalMaintenanceSNs - Set de SNs em manutenção externa.
+ * @param {Function} normalizeId - <-- ALTERAÇÃO 1: Função de normalização adicionada como parâmetro.
  */
-export function renderTable(filteredEquipments, tableBodyElement, consolidatedCalibratedMap, externalMaintenanceSNs) {
+export function renderTable(filteredEquipments, tableBodyElement, consolidatedCalibratedMap, externalMaintenanceSNs, normalizeId) {
     tableBodyElement.innerHTML = '';
     
     if (filteredEquipments.length === 0) {
         const row = tableBodyElement.insertRow();
         const cell = row.insertCell();
-        cell.colSpan = 9;
+        cell.colSpan = 10; // Ajustado para 10 colunas, se necessário
         cell.textContent = 'Nenhum equipamento encontrado com os filtros aplicados.';
         cell.style.textAlign = 'center';
         updateEquipmentCount(0);
@@ -38,10 +39,14 @@ export function renderTable(filteredEquipments, tableBodyElement, consolidatedCa
 
     filteredEquipments.forEach(eq => {
         const row = tableBodyElement.insertRow();
-        const sn = String(eq['Nº Série'] || eq.NumeroSerie || '').trim().toLowerCase();
+        
+        // <-- ALTERAÇÃO 2: A normalização agora é feita usando a função passada como parâmetro.
+        const sn = normalizeId(eq['Nº Série'] || eq.NumeroSerie);
 
         // Lógica de status de calibração
         let calibStatusCellText = eq['Status Calibração'] ?? '';
+        
+        // Esta verificação agora funcionará corretamente para números de série com zeros à esquerda.
         let isCalibratedConsolidated = consolidatedCalibratedMap.has(sn);
         let dataCalibracao = '';
         
@@ -58,7 +63,7 @@ export function renderTable(filteredEquipments, tableBodyElement, consolidatedCa
             calibStatusCellText = 'Calibrado (Total)';
         }
 
-        // Lógica de status de manutenção
+        // Lógica de status de manutenção (também usará o 'sn' normalizado)
         if (externalMaintenanceSNs.has(sn)) {
             row.classList.add('in-external-maintenance');
         }

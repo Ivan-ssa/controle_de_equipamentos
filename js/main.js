@@ -368,7 +368,8 @@ function applyAllFiltersAndRender() {
         }
     });
     const filteredEquipments = applyFilters(allEquipments, filters, normalizeId); 
-    renderTable(filteredEquipments, equipmentTableBody, window.consolidatedCalibratedMap, window.externalMaintenanceSNs); 
+    // Passe a função normalizeId como o último argumento
+    renderTable(filteredEquipments, equipmentTableBody, window.consolidatedCalibratedMap, window.externalMaintenanceSNs, normalizeId); 
     updateEquipmentCount(filteredEquipments.length);
 }
 
