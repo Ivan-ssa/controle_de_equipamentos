@@ -46,18 +46,95 @@ const maintenanceFilter = document.getElementById('maintenanceFilter');
 const exportButton = document.getElementById('exportButton');
 const exportOsButton = document.getElementById('exportOsButton'); 
 
-// ADICIONADO: Referências para o novo carregador de ronda
-const rondaResultInput = document.getElementById('rondaResultInput'); 
-const loadRondaResultButton = document.getElementById('loadRondaResultButton');
 
 const headerFiltersRow = document.getElementById('headerFilters'); 
 // ... (resto das suas referências DOM originais)
 
 
-// Sua função handleProcessFile original e completa vai aqui
 async function handleProcessFile() {
-    // ... (Cole sua função handleProcessFile original aqui, sem alterações)
-}
+        outputDiv.textContent = 'Processando arquivo Excel...';
+        const file = excelFileInput.files[0];
+        if (!file) {
+            outputDiv.textContent = 'Por favor, selecione um arquivo Excel.';
+            return;
+        }
+    
+        try {
+            outputDiv.textContent = `Lendo o arquivo: ${file.name}...`;
+            const data = await file.arrayBuffer();
+            const workbook = XLSX.read(data);
+
+            // 1. LÊ A ABA MESTRE (PRIMEIRA ABA) E PROCESSA TUDO
+            const masterSheetName = workbook.SheetNames[0];
+            const masterWorksheet = workbook.Sheets[masterSheetName];
+            allEquipments = XLSX.utils.sheet_to_json(masterWorksheet, { raw: true, defval: '' });
+
+            outputDiv.textContent = `Arquivo mestre com ${allEquipments.length} equipamentos carregado.`;
+            
+            const mainEquipmentsBySN = new Map();
+            const mainEquipmentsByPatrimonio = new Map();
+
+            window.consolidatedCalibratedMap.clear();
+            window.externalMaintenanceSNs.clear();
+            window.osRawData = [];
+            window.divergenceSNs.clear();
+
+            allEquipments.forEach(item => {
+                const sn = normalizeId(item['Nº Série'] || item.NumeroSerie);
+                const patrimonio = normalizeId(item['Patrimônio'] || item.Patrimonio);
+                if (sn) mainEquipmentsBySN.set(item, item);
+                if (patrimonio) mainEquipmentsByPatrimonio.set(item, item);
+
+                const fornecedor = String(item['Fornecedor'] || '').trim();
+                const dataCalib = item['Data Calibração'];
+                if (sn && fornecedor !== '') {
+                    window.consolidatedCalibratedMap.set(sn, { fornecedor, dataCalibricao: dataCalib });
+                }
+
+                const manutencaoExterna = String(item['Manutenção Externa'] || '').trim().toLowerCase();
+                if (sn && (manutencaoExterna.includes('manutenção'))) {
+                    window.externalMaintenanceSNs.add(sn);
+                }
+
+                const osNumero = String(item['OS'] || '').trim();
+                if (osNumero !== '') {
+                    window.osRawData.push(item);
+                }
+            });
+
+            // 2. LÊ A ABA "RONDA" DO MESMO ARQUIVO (SE EXISTIR)
+            window.rondaResultsMap.clear();
+            if (workbook.SheetNames.includes('Ronda')) {
+                const rondaWorksheet = workbook.Sheets['Ronda'];
+                const rondaData = XLSX.utils.sheet_to_json(rondaWorksheet, { raw: true, defval: '' });
+                rondaData.forEach(item => {
+                    const sn = normalizeId(item['Nº de Série'] || item.NumeroSerie);
+                    if (sn) {
+                        window.rondaResultsMap.set(sn, {
+                            Localizacao: String(item.Localizacao || item['Localização Encontrada'] || '').trim().toUpperCase(),
+                            Status: item.Status
+                        });
+                    }
+                });
+                outputDiv.textContent += `\nAba 'Ronda' encontrada com ${window.rondaResultsMap.size} itens.`;
+            }
+
+            // 3. RENDERIZA TUDO COM TODAS AS INFORMAÇÕES
+            outputDiv.textContent += '\nProcessamento concluído. Renderizando tabelas...';
+            applyAllFiltersAndRender(); 
+            populateSectorFilter(allEquipments, sectorFilter); 
+            populateCalibrationStatusFilter(window.consolidatedCalibrationsRawData); 
+            setupHeaderFilters(allEquipments);
+            renderOsTable(window.osRawData, osTableBody, mainEquipmentsBySN, mainEquipmentsByPatrimonio, window.consolidatedCalibratedMap, window.externalMaintenanceSNs, normalizeId);
+            populateRondaSectorSelect(allEquipments, rondaSectorSelect);
+            initRonda([], rondaTableBody, rondaCountSpan, '', normalizeId);
+            toggleSectionVisibility('equipmentSection'); 
+
+        } catch (error) {
+            outputDiv.textContent = `Erro ao processar o arquivo: ${error.message}`;
+            console.error('Erro ao processar arquivos:', error);
+        }
+    }
 
 // ... (Suas outras funções originais: setupHeaderFilters, exportWithExcelJS, toggleSectionVisibility, etc.)
 
@@ -88,36 +165,3 @@ searchInput.addEventListener('keyup', applyAllFiltersAndRender);
 maintenanceFilter.addEventListener('change', applyAllFiltersAndRender); 
 // ... (outros listeners originais) ...
 
-// ADICIONADO: Novo Event Listener para o botão de carregar a ronda
-loadRondaResultButton.addEventListener('click', async () => {
-    const file = rondaResultInput.files[0];
-    if (!file) {
-        alert('Por favor, selecione um arquivo de ronda preenchida.');
-        return;
-    }
-    outputDiv.textContent = 'Lendo arquivo de ronda...';
-
-    try {
-        const rondaData = await readExcelFile(file);
-        window.rondaResultsMap.clear();
-
-        rondaData.forEach(item => {
-            const sn = normalizeId(item['Nº de Série'] || item.NumeroSerie);
-            if (sn) {
-                window.rondaResultsMap.set(sn, {
-                    Localizacao: String(item.Localizacao || item['Localização Encontrada'] || '').trim().toUpperCase(),
-                    Status: item.Status
-                });
-            }
-        });
-
-        outputDiv.textContent = `Resultado da ronda com ${window.rondaResultsMap.size} itens carregado. A tabela foi atualizada.`;
-        // Re-renderiza a tabela principal com as novas informações de localização
-        applyAllFiltersAndRender();
-
-    } catch (error) {
-        outputDiv.textContent = `Erro ao processar o arquivo de ronda: ${error.message}`;
-    }
-});
-
-// ... (resto dos seus listeners originais)

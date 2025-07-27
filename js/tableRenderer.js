@@ -1,4 +1,5 @@
 // js/tableRenderer.js
+import { readExcelFile } from './excelReader.js'
 
 function formatExcelDate(excelDate) {
     if (typeof excelDate !== 'number' || excelDate <= 0) {
@@ -74,5 +75,19 @@ export function renderTable(filteredEquipments, tableBodyElement, consolidatedCa
     updateEquipmentCount(filteredEquipments.length);
 }
 
-// Suas outras funções (updateEquipmentCount, populateSectorFilter) continuam aqui
-// ...
+export function populateSectorFilter(allEquipments, selectElement) {
+    const uniqueSectors = new Set(
+        allEquipments
+            .map(eq => String(eq['Setor'] || '').trim())
+            .filter(sector => sector !== '')
+    );
+    
+    selectElement.innerHTML = '<option value="">Todos os Setores</option>';
+    
+    Array.from(uniqueSectors).sort().forEach(sector => {
+        const option = document.createElement('option');
+        option.value = sector;
+        option.textContent = sector;
+        selectElement.appendChild(option);
+    });
+}
