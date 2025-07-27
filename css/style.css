@@ -129,6 +129,8 @@ tbody tr.not-calibrated {
 tbody tr.calibrated-dhme { 
     background-color: #b3e6b3 !important;
 }
+
+
 tbody tr.in-external-maintenance td {
     color: #dc3545 !important;
     font-style: italic; 
@@ -295,4 +297,14 @@ button {
     border-radius: 3px;
     font-size: 0.85em;
     box-sizing: border-box;
+}
+/* NOVO: Estilo para o TEXTO dos itens calibrados */
+tbody tr.calibrated-text td {
+    color: #1a7431 !important; /* Verde escuro */
+    font-weight: bold !important;
+}
+
+/* NOVO: Estilo para a linha com divergência de localização */
+tbody tr.location-divergence {
+    background-color: #fff3cd !important; /* Amarelo/laranja claro */
 }

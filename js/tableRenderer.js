@@ -1,4 +1,5 @@
 // js/tableRenderer.js
+// Versão completa e atualizada
 
 /**
  * Converte um número de data do Excel para uma string de data formatada (DD/MM/AAAA).
@@ -17,20 +18,21 @@ function formatExcelDate(excelDate) {
 }
 
 /**
- * Renderiza a tabela principal de equipamentos.
+ * ATUALIZADA: Renderiza a tabela principal de equipamentos com a nova lógica visual.
  * @param {Array<Object>} filteredEquipments - O array de objetos de equipamentos.
  * @param {HTMLElement} tableBodyElement - O elemento <tbody> da tabela de equipamentos.
  * @param {Map<string, Object>} consolidatedCalibratedMap - Mapa de SN -> { fornecedor, dataCalibracao }.
  * @param {Set<string>} externalMaintenanceSNs - Set de SNs em manutenção externa.
- * @param {Function} normalizeId - <-- ALTERAÇÃO 1: Função de normalização adicionada como parâmetro.
+ * @param {Function} normalizeId - Função para normalizar IDs.
+ * @param {Map<string, Object>} rondaResultsMap - Mapa com os resultados da última ronda carregada.
  */
-export function renderTable(filteredEquipments, tableBodyElement, consolidatedCalibratedMap, externalMaintenanceSNs, normalizeId) {
+export function renderTable(filteredEquipments, tableBodyElement, consolidatedCalibratedMap, externalMaintenanceSNs, normalizeId, rondaResultsMap) {
     tableBodyElement.innerHTML = '';
     
     if (filteredEquipments.length === 0) {
         const row = tableBodyElement.insertRow();
         const cell = row.insertCell();
-        cell.colSpan = 10; // Ajustado para 10 colunas, se necessário
+        cell.colSpan = 10;
         cell.textContent = 'Nenhum equipamento encontrado com os filtros aplicados.';
         cell.style.textAlign = 'center';
         updateEquipmentCount(0);
@@ -39,35 +41,40 @@ export function renderTable(filteredEquipments, tableBodyElement, consolidatedCa
 
     filteredEquipments.forEach(eq => {
         const row = tableBodyElement.insertRow();
-        
-        // <-- ALTERAÇÃO 2: A normalização agora é feita usando a função passada como parâmetro.
         const sn = normalizeId(eq['Nº Série'] || eq.NumeroSerie);
 
-        // Lógica de status de calibração
+        // --- Lógica de Calibração (Estilo de TEXTO) ---
         let calibStatusCellText = eq['Status Calibração'] ?? '';
-        
-        // Esta verificação agora funcionará corretamente para números de série com zeros à esquerda.
         let isCalibratedConsolidated = consolidatedCalibratedMap.has(sn);
         let dataCalibracao = '';
         
         if (isCalibratedConsolidated) {
-            row.classList.add('calibrated-dhme');
+            row.classList.add('calibrated-text'); // ALTERADO: Aplica o estilo de TEXTO verde
             const calibInfo = consolidatedCalibratedMap.get(sn);
-            calibStatusCellText = calibInfo.fornecedor; // Agora mostra só o nome do fornecedor
-            dataCalibracao = formatExcelDate(calibInfo.dataCalibricao);
-        } else if (String(calibStatusCellText).toLowerCase().includes('não calibrado') || calibStatusCellText.trim() === '') {
-            row.classList.add('not-calibrated');
-            calibStatusCellText = 'Não Calibrado/Não Encontrado (Seu Cadastro)';
-        } else {
-            row.classList.add('calibrated');
-            calibStatusCellText = 'Calibrado (Total)';
+            calibStatusCellText = calibInfo.fornecedor;
+            dataCalibracao = formatExcelDate(calibInfo.dataCalibracao);
+        } else if (String(eq['Status Calibração']).toLowerCase().includes('não calibrado') || String(eq['Status Calibração']).trim() === '') {
+            row.classList.add('not-calibrated'); // Mantém o FUNDO vermelho
+            calibStatusCellText = 'Não Calibrado/Não Encontrado';
         }
 
-        // Lógica de status de manutenção (também usará o 'sn' normalizado)
+        // --- Lógica de Manutenção (sem alterações) ---
         if (externalMaintenanceSNs.has(sn)) {
             row.classList.add('in-external-maintenance');
         }
 
+        // --- NOVA Lógica da Ronda (Estilo de FUNDO) ---
+        if (rondaResultsMap && rondaResultsMap.has(sn)) {
+            const rondaInfo = rondaResultsMap.get(sn);
+            const setorCadastrado = String(eq.Setor || '').trim().toUpperCase();
+            
+            // Compara a localização da ronda com o setor de cadastro do equipamento
+            if (rondaInfo.Localizacao && setorCadastrado !== rondaInfo.Localizacao) {
+                row.classList.add('location-divergence'); // Aplica o FUNDO amarelo
+            }
+        }
+
+        // --- Renderiza as células da tabela ---
         row.insertCell().textContent = eq['TAG'] ?? '';
         row.insertCell().textContent = eq['Equipamento'] ?? '';
         row.insertCell().textContent = eq['Modelo'] ?? '';
@@ -77,7 +84,7 @@ export function renderTable(filteredEquipments, tableBodyElement, consolidatedCa
         row.insertCell().textContent = eq['Patrimônio'] ?? '';
         row.insertCell().textContent = calibStatusCellText; // Célula Fornecedor
         row.insertCell().textContent = dataCalibracao; // Célula Data Calibração
-        row.insertCell().textContent = formatExcelDate(eq['Data Vencimento Calibração']) ?? ''; // Célula Data Vencimento Calibração
+        row.insertCell().textContent = formatExcelDate(eq['Data Vencimento Calibração']) ?? '';
     });
     updateEquipmentCount(filteredEquipments.length);
 }

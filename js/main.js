@@ -30,6 +30,8 @@ window.osRawData = [];
 window.rondaData = []; 
 window.divergenceSNs = new Set();
 window.rawDivergenceData = [];
+window.rondaResultsMap = new Map(); // <-- Adicione esta variável global
+
 
 
 // Referências aos elementos do DOM
@@ -67,7 +69,8 @@ const saveRondaButton = document.getElementById('saveRondaButton');
 const rondaTableBody = document.querySelector('#rondaTable tbody');
 const rondaCountSpan = document.getElementById('rondaCount');
 const divergenceTableBody = document.querySelector('#divergenceTable tbody');
-
+const rondaResultInput = document.getElementById('rondaResultInput'); 
+const loadRondaResultButton = document.getElementById('loadRondaResultButton');
 
 function toggleSectionVisibility(sectionToShowId) {
     if (equipmentSection) equipmentSection.classList.add('hidden');
@@ -368,8 +371,10 @@ function applyAllFiltersAndRender() {
         }
     });
     const filteredEquipments = applyFilters(allEquipments, filters, normalizeId); 
-    // Passe a função normalizeId como o último argumento
-    renderTable(filteredEquipments, equipmentTableBody, window.consolidatedCalibratedMap, window.externalMaintenanceSNs, normalizeId); 
+
+    // ALTERAÇÃO IMPORTANTE AQUI: Adicionamos window.rondaResultsMap no final
+    renderTable(filteredEquipments, equipmentTableBody, window.consolidatedCalibratedMap, window.externalMaintenanceSNs, normalizeId, window.rondaResultsMap); 
+    
     updateEquipmentCount(filteredEquipments.length);
 }
 
@@ -507,4 +512,36 @@ saveRondaButton.addEventListener('click', () => {
 
 document.addEventListener('DOMContentLoaded', () => {
     toggleSectionVisibility('equipmentSection');
+});
+
+// NOVO EVENT LISTENER PARA O BOTÃO DE CARREGAR A RONDA
+loadRondaResultButton.addEventListener('click', async () => {
+    const file = rondaResultInput.files[0];
+    if (!file) {
+        alert('Por favor, selecione um arquivo de ronda preenchida.');
+        return;
+    }
+    outputDiv.textContent = 'Lendo arquivo de ronda...';
+
+    try {
+        const rondaData = await readExcelFile(file);
+        window.rondaResultsMap.clear();
+
+        rondaData.forEach(item => {
+            const sn = normalizeId(item['Nº de Série'] || item.NumeroSerie);
+            if (sn) {
+                window.rondaResultsMap.set(sn, {
+                    Localizacao: String(item.Localizacao || item['Localização Encontrada'] || '').trim().toUpperCase(),
+                    Status: item.Status
+                });
+            }
+        });
+
+        outputDiv.textContent = `Resultado da ronda com ${window.rondaResultsMap.size} itens carregado. A tabela foi atualizada.`;
+        // Re-renderiza a tabela principal com as novas informações de localização
+        applyAllFiltersAndRender();
+
+    } catch (error) {
+        outputDiv.textContent = `Erro ao processar o arquivo de ronda: ${error.message}`;
+    }
 });
