@@ -136,9 +136,7 @@ async function handleProcessFile() {
         }
     }
 
-// ... (Suas outras funções originais: setupHeaderFilters, exportWithExcelJS, toggleSectionVisibility, etc.)
 
-// ATUALIZADO: A chamada da renderTable agora inclui rondaResultsMap
 function applyAllFiltersAndRender() {
     const filters = {
         sector: sectorFilter.value, 
@@ -156,6 +154,40 @@ function applyAllFiltersAndRender() {
     updateEquipmentCount(filteredEquipments.length);
 }
 
+function populateCalibrationStatusFilter(rawCalibrationsData) {
+    const filterElement = document.getElementById('calibrationStatusFilter');
+    if (!filterElement) return; // Adiciona uma verificação de segurança
+
+    filterElement.innerHTML = '<option value="">Todos os Status</option>';
+    const fixedOptions = [
+        { value: 'Calibrado (Consolidado)', text: 'Calibrado (Consolidado)' },
+        { value: 'Não Calibrado/Não Encontrado', text: 'Não Calibrado/Não Encontrado' },
+    ];
+    fixedOptions.forEach(opt => {
+        const option = document.createElement('option');
+        option.value = opt.value;
+        option.textContent = opt.text;
+        filterElement.appendChild(option);
+    });
+
+    // Esta parte do código pode ser reativada no futuro se você tiver
+    // uma fonte de dados de calibração mais detalhada.
+    /*
+    const uniqueSuppliers = new Set();
+    rawCalibrationsData.forEach(item => {
+        const fornecedor = String(item.FornecedorConsolidacao || item.Fornecedor || '').trim();
+        if (fornecedor) {
+            uniqueSuppliers.add(fornecedor); 
+        }
+    });
+    Array.from(uniqueSuppliers).sort().forEach(fornecedor => {
+        const optionDivergence = document.createElement('option');
+        optionDivergence.value = `Divergência (${fornecedor})`;
+        optionDivergence.textContent = `Divergência (${fornecedor})`;
+        filterElement.appendChild(optionDivergence);
+    });
+    */
+}
 
 // --- EVENT LISTENERS ---
 processButton.addEventListener('click', handleProcessFile);
