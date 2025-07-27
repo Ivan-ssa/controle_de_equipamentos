@@ -22,10 +22,18 @@
             <div id="statusMessage" class="status">Aguardando arquivo mestre...</div>
         </section>
 
+        <section id="sectorSelectorSection" class="card hidden">
+            <h2>2. Selecionar Setor</h2>
+            <select id="sectorSelect">
+                <option value="">Selecione um setor...</option>
+            </select>
+            <button id="startRondaButton">Iniciar Ronda no Setor</button>
+        </section>
+
         <section id="rondaSection" class="card hidden">
-            <h2>2. Buscar Equipamento</h2>
+            <h2>3. Buscar e Verificar Equipamento</h2>
             <form id="searchForm">
-                <input type="search" id="searchInput" placeholder="Ler Nº de Série ou Patrimônio..." required>
+                <input type="search" id="searchInput" placeholder="Ler Nº de Série ou Patrimônio...">
                 <button type="submit">Buscar</button>
             </form>
 
@@ -33,18 +41,18 @@
                 <h3>Equipamento Encontrado</h3>
                 <div id="equipmentDetails"></div>
                 
-                <label for="locationInput">Localização Encontrada:</label>
-                <input type="text" id="locationInput" placeholder="Ex: UTI 2 - Leito 205" required>
+                <label for="locationInput">Localização Encontrada (Opcional):</label>
+                <input type="text" id="locationInput" placeholder="Ex: SALA COMUM, CORREDOR, LEITO 205">
                 
                 <label for="obsInput">Observações:</label>
                 <input type="text" id="obsInput" placeholder="(Opcional)">
                 
-                <button id="addToRondaButton">Adicionar à Ronda</button>
+                <button id="confirmItemButton">Confirmar Localização</button>
             </div>
         </section>
 
         <section id="rondaListSection" class="card hidden">
-            <h2>Itens Verificados (<span id="rondaCounter">0</span>)</h2>
+            <h2>Itens do Setor (<span id="rondaCounter">0</span>)</h2>
             <ul id="rondaList">
                 </ul>
             <button id="exportRondaButton" class="export-button">Compartilhar Ronda</button>

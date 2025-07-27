@@ -99,3 +99,18 @@ button.export-button:hover {
     font-weight: bold;
     color: #0056b3;
 }
+/* Força o texto digitado a aparecer em maiúsculas */
+input[type="text"], input[type="search"] {
+    text-transform: uppercase;
+}
+/* ... Adicione ao final do arquivo ... */
+
+#rondaList li.item-localizado {
+    background-color: #e4fde1; /* Verde claro */
+    border-left: 5px solid #52b788;
+}
+
+#rondaList li.item-nao-localizado {
+    background-color: #fcfcfc;
+    opacity: 0.7;
+}
