@@ -1,116 +1,34 @@
-/* css/mobile_style.css */
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    margin: 0;
-    padding: 15px;
-    background-color: #f0f2f5;
-    color: #333;
-    line-height: 1.6;
+    margin: 0; padding: 15px; background-color: #f0f2f5; color: #333; line-height: 1.6;
 }
-
 header {
-    background-color: #0056b3;
-    color: white;
-    padding: 15px;
-    text-align: center;
-    border-radius: 8px;
-    margin-bottom: 20px;
+    background-color: #0056b3; color: white; padding: 15px; text-align: center;
+    border-radius: 8px; margin-bottom: 20px;
 }
-
-h1, h2, h3 {
-    margin-top: 0;
-}
-
+h1, h2, h3 { margin-top: 0; }
 .card {
-    background-color: white;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    margin-bottom: 20px;
+    background-color: white; padding: 20px; border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 20px;
 }
-
-input[type="file"], input[type="search"], input[type="text"], select {
-    width: 100%;
-    padding: 12px;
-    font-size: 16px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    box-sizing: border-box; /* Importante para o padding não estourar a largura */
-    margin-bottom: 15px;
+input, select, button {
+    width: 100%; padding: 12px; font-size: 16px; border: 1px solid #ccc;
+    border-radius: 6px; box-sizing: border-box; margin-bottom: 15px;
 }
-
-button {
-    width: 100%;
-    padding: 15px;
-    font-size: 18px;
-    font-weight: bold;
-    color: white;
-    background-color: #007bff;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-button:hover {
-    background-color: #0056b3;
-}
-
-button.export-button {
-    background-color: #28a745; /* Verde para exportar */
-}
-button.export-button:hover {
-    background-color: #218838;
-}
-
-.status {
-    margin-top: 10px;
-    font-style: italic;
-    color: #666;
-}
-
-.hidden {
-    display: none !important;
-}
-
-#equipmentDetails {
-    background-color: #e9ecef;
-    padding: 10px;
-    border-radius: 6px;
-    margin-bottom: 15px;
-}
-#equipmentDetails p {
-    margin: 5px 0;
-}
-
-#rondaList {
-    list-style-type: none;
-    padding: 0;
-}
-
-#rondaList li {
-    background-color: #f8f9fa;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    margin-bottom: 8px;
-}
-#rondaList li .location {
-    font-weight: bold;
-    color: #0056b3;
-}
-/* Força o texto digitado a aparecer em maiúsculas */
 input[type="text"], input[type="search"] {
     text-transform: uppercase;
 }
-/* ... Adicione ao final do arquivo ... */
-
-#rondaList li.item-localizado {
-    background-color: #e4fde1; /* Verde claro */
-    border-left: 5px solid #52b788;
+button {
+    padding: 15px; font-size: 18px; font-weight: bold; color: white;
+    background-color: #007bff; border: none; cursor: pointer;
 }
-
-#rondaList li.item-nao-localizado {
-    background-color: #fcfcfc;
-    opacity: 0.7;
-}
+button.export-button { background-color: #28a745; }
+.status { margin-top: 10px; font-style: italic; color: #666; }
+.hidden { display: none !important; }
+#equipmentDetails { background-color: #e9ecef; padding: 10px; border-radius: 6px; margin-bottom: 15px; }
+#equipmentDetails p { margin: 5px 0; }
+#rondaList { list-style-type: none; padding: 0; }
+#rondaList li { padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 8px; }
+#rondaList li .location { font-weight: bold; color: #0056b3; }
+#rondaList li.item-localizado { background-color: #e4fde1; border-left: 5px solid #52b788; }
+#rondaList li.item-nao-localizado { background-color: #fcfcfc; opacity: 0.7; }

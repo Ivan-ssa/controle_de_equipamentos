@@ -6,14 +6,11 @@
     <title>Iniciar Ronda</title>
     <link rel="stylesheet" href="css/mobile_style.css">
     <link rel="manifest" href="manifest.json">
-
 </head>
 <body>
-
     <header>
         <h1>Ronda de Equipamentos</h1>
     </header>
-
     <main>
         <section id="fileLoaderSection" class="card">
             <h2>1. Carregar Lista Mestra</h2>
@@ -21,7 +18,6 @@
             <button id="loadFileButton">Carregar Arquivo</button>
             <div id="statusMessage" class="status">Aguardando arquivo mestre...</div>
         </section>
-
         <section id="sectorSelectorSection" class="card hidden">
             <h2>2. Selecionar Setor</h2>
             <select id="sectorSelect">
@@ -29,36 +25,28 @@
             </select>
             <button id="startRondaButton">Iniciar Ronda no Setor</button>
         </section>
-
         <section id="rondaSection" class="card hidden">
             <h2>3. Buscar e Verificar Equipamento</h2>
             <form id="searchForm">
                 <input type="search" id="searchInput" placeholder="Ler Nº de Série ou Patrimônio...">
                 <button type="submit">Buscar</button>
             </form>
-
             <div id="searchResult" class="hidden">
                 <h3>Equipamento Encontrado</h3>
                 <div id="equipmentDetails"></div>
-                
                 <label for="locationInput">Localização Encontrada (Opcional):</label>
                 <input type="text" id="locationInput" placeholder="Ex: SALA COMUM, CORREDOR, LEITO 205">
-                
                 <label for="obsInput">Observações:</label>
                 <input type="text" id="obsInput" placeholder="(Opcional)">
-                
                 <button id="confirmItemButton">Confirmar Localização</button>
             </div>
         </section>
-
         <section id="rondaListSection" class="card hidden">
             <h2>Itens do Setor (<span id="rondaCounter">0</span>)</h2>
-            <ul id="rondaList">
-                </ul>
+            <ul id="rondaList"></ul>
             <button id="exportRondaButton" class="export-button">Compartilhar Ronda</button>
         </section>
     </main>
-
     <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
     <script type="module" src="js/ronda_mobile.js"></script>
 </body>
