@@ -189,6 +189,116 @@ function populateCalibrationStatusFilter(rawCalibrationsData) {
     */
 }
 
+
+function setupHeaderFilters(equipments) {
+    headerFiltersRow.innerHTML = ''; 
+
+    const headerFilterMap = {
+        'TAG': { prop: 'TAG', type: 'text' },
+        'Equipamento': { prop: 'Equipamento', type: 'select_multiple' }, 
+        'Modelo': { prop: 'Modelo', type: 'select_multiple' },         
+        'Fabricante': { prop: 'Fabricante', type: 'select_multiple' },     
+        'Setor': { prop: 'Setor', type: 'select_multiple' },             
+        'Nº Série': { prop: 'Nº Série', type: 'text' },
+        'Patrimônio': { prop: 'Patrimônio', type: 'text' },
+        'Fornecedor': { prop: 'Fornecedor', type: 'select_multiple' },
+        'Data Calibração': { prop: 'Data Calibração', type: 'text' },
+        'Data Vencimento Calibração': { prop: 'Data Vencimento Calibração', type: 'text' },
+    };
+
+    const originalHeaders = document.querySelectorAll('#equipmentTable thead tr:first-child th');
+    originalHeaders.forEach(th => {
+        const filterCell = document.createElement('th');
+        const headerText = th.textContent.trim();
+        if (!headerText) return;
+
+        const columnInfo = headerFilterMap[headerText];
+        if (columnInfo) {
+            if (columnInfo.type === 'text') {
+                const filterInput = document.createElement('input');
+                filterInput.type = 'text';
+                filterInput.placeholder = `Filtrar...`;
+                filterInput.dataset.property = columnInfo.prop;
+                filterInput.addEventListener('keyup', applyAllFiltersAndRender);
+                filterCell.appendChild(filterInput);
+            } else if (columnInfo.type === 'select_multiple') {
+                const filterButton = document.createElement('div');
+                filterButton.className = 'filter-button';
+                filterButton.textContent = `Filtrar`; 
+                filterButton.dataset.property = columnInfo.prop;
+                const filterPopup = document.createElement('div');
+                filterPopup.className = 'filter-popup';
+                filterPopup.dataset.property = columnInfo.prop; 
+                const searchPopupInput = document.createElement('input');
+                searchPopupInput.type = 'text';
+                searchPopupInput.placeholder = 'Buscar...';
+                searchPopupInput.className = 'filter-search-input';
+                filterPopup.appendChild(searchPopupInput);
+                const optionsContainer = document.createElement('div'); 
+                optionsContainer.className = 'filter-options-container'; 
+                filterPopup.appendChild(optionsContainer);
+                const uniqueValues = new Set();
+                equipments.forEach(eq => {
+                    let value = eq[columnInfo.prop];
+                    if (value && String(value).trim() !== '') {
+                        uniqueValues.add(String(value).trim());
+                    }
+                });
+                const populateCheckboxes = (searchTerm = '') => {
+                    optionsContainer.innerHTML = ''; 
+                    const filteredValues = Array.from(uniqueValues).filter(val => String(val).toLowerCase().includes(searchTerm.toLowerCase())).sort();
+                    const selectAllLabel = document.createElement('label');
+                    selectAllLabel.className = 'select-all-label'; 
+                    const selectAllCheckbox = document.createElement('input');
+                    selectAllCheckbox.type = 'checkbox';
+                    selectAllCheckbox.className = 'select-all';
+                    selectAllCheckbox.checked = true; 
+                    selectAllLabel.appendChild(selectAllCheckbox);
+                    selectAllLabel.appendChild(document.createTextNode('(Selecionar Todos)'));
+                    optionsContainer.appendChild(selectAllLabel);
+                    selectAllCheckbox.addEventListener('change', () => {
+                        const allIndividualCheckboxes = optionsContainer.querySelectorAll('input[type="checkbox"]:not(.select-all)');
+                        allIndividualCheckboxes.forEach(cb => cb.checked = selectAllCheckbox.checked);
+                        applyAllFiltersAndRender();
+                    });
+                    filteredValues.forEach(value => {
+                        const label = document.createElement('label');
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.value = value; 
+                        checkbox.checked = true; 
+                        checkbox.addEventListener('change', () => {
+                            const allIndividualCheckboxes = optionsContainer.querySelectorAll('input[type="checkbox"]:not(.select-all)');
+                            selectAllCheckbox.checked = Array.from(allIndividualCheckboxes).every(cb => cb.checked);
+                            applyAllFiltersAndRender();
+                        });
+                        label.appendChild(checkbox);
+                        label.appendChild(document.createTextNode(value));
+                        optionsContainer.appendChild(label);
+                    });
+                };
+                populateCheckboxes(); 
+                searchPopupInput.addEventListener('keyup', (event) => populateCheckboxes(event.target.value));
+                filterButton.addEventListener('click', (event) => {
+                    document.querySelectorAll('.filter-popup.active').forEach(popup => {
+                        if (popup !== filterPopup) popup.classList.remove('active');
+                    });
+                    filterPopup.classList.toggle('active'); 
+                    event.stopPropagation(); 
+                });
+                document.addEventListener('click', (event) => {
+                    if (!filterPopup.contains(event.target) && !filterButton.contains(event.target)) {
+                        filterPopup.classList.remove('active');
+                    }
+                });
+                filterCell.appendChild(filterButton);
+                filterCell.appendChild(filterPopup);
+            }
+        }
+        headerFiltersRow.appendChild(filterCell);
+    });
+}
+
 // --- EVENT LISTENERS ---
 processButton.addEventListener('click', handleProcessFile);
 sectorFilter.addEventListener('change', applyAllFiltersAndRender); 
