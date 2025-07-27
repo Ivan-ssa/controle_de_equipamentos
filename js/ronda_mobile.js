@@ -1,5 +1,5 @@
 // js/ronda_mobile.js
-// Versão revisada e atualizada
+// Versão completa e atualizada
 
 // === Variáveis Globais ===
 let allEquipments = [];
@@ -93,7 +93,7 @@ loadFileButton.addEventListener('click', async () => {
         populateSectorSelect();
         statusMessage.style.color = 'green';
         
-        // Controla a visibilidade das seções
+        // Controla a visibilidade das seções para garantir o fluxo correto
         fileLoaderSection.classList.add('hidden');
         sectorSelectorSection.classList.remove('hidden');
         rondaSection.classList.add('hidden');
@@ -127,7 +127,7 @@ startRondaButton.addEventListener('click', () => {
 
     const equipmentsForThisRonda = allEquipments.filter(eq => String(eq.Setor || '').trim() === selectedSector);
 
-    // Prepara a lista de itens da ronda, verificando se já estavam na ronda anterior
+    // Prepara a lista de itens, cruzando com os dados da ronda anterior
     rondaItems = equipmentsForThisRonda.map(eq => {
         const sn = normalizeId(eq['Nº Série']);
         const previousData = previousRondaMap.get(sn);
