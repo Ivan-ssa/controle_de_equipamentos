@@ -13,18 +13,20 @@
     <main class="container">
         <section class="controls-section">
             <div class="file-input-container">
-                <label for="excelFileInput">1. Arquivo Mestre:</label>
-                <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv, .xlsm">
-                <button id="processButton" class="action-button">Processar Arquivo</button>
+                <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv, .xlsm" multiple>
+                <label for="excelFileInput" class="custom-file-upload">
+                    Selecionar Arquivo
+                </label>
             </div>
-
-            <div class="file-input-container">
-                <label for="rondaResultInput">2. Carregar Ronda Preenchida:</label>
-                <input type="file" id="rondaResultInput" accept=".xlsx, .xls, .csv">
-                <button id="loadRondaResultButton" class="action-button">Carregar Resultado da Ronda</button>
+            <button id="processButton" class="action-button">Processar Arquivo</button>
+            <div class="section-toggle">
+                <button id="showEquipmentButton" class="toggle-section-button active">Equipamentos</button>
+                <button id="showOsButton" class="toggle-section-button">OS em Aberto</button>
+                <button id="showDivergenceButton" class="toggle-section-button">Ver Divergências</button>
+                <button id="showRondaButton" class="toggle-section-button">Ronda</button>
+                <a href="ronda_mobile.html" target="_blank" class="toggle-section-button mobile-ronda-button">▶ Iniciar Ronda (Celular)</a>
             </div>
-
-            </section>
+        </section>
 
         <div id="output" class="output-message">Aguardando arquivo...</div>
 
