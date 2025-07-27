@@ -1,6 +1,10 @@
 // js/tableRenderer.js
-import { readExcelFile } from './excelReader.js'
 
+/**
+ * Converte um número de data do Excel para uma string de data formatada (DD/MM/AAAA).
+ * @param {number} excelDate - O número de data do Excel.
+ * @returns {string} - A string de data formatada.
+ */
 function formatExcelDate(excelDate) {
     if (typeof excelDate !== 'number' || excelDate <= 0) {
         return '';
@@ -12,7 +16,9 @@ function formatExcelDate(excelDate) {
     return `${day}/${month}/${year}`;
 }
 
-// ATUALIZADA: Renderiza a tabela principal com a nova lógica visual.
+/**
+ * Renderiza a tabela principal de equipamentos com a nova lógica visual.
+ */
 export function renderTable(filteredEquipments, tableBodyElement, consolidatedCalibratedMap, externalMaintenanceSNs, normalizeId, rondaResultsMap) {
     tableBodyElement.innerHTML = '';
     
@@ -36,12 +42,12 @@ export function renderTable(filteredEquipments, tableBodyElement, consolidatedCa
         let dataCalibracao = '';
         
         if (isCalibratedConsolidated) {
-            row.classList.add('calibrated-text'); // MODIFICADO: Aplica o estilo de TEXTO verde
+            row.classList.add('calibrated-text');
             const calibInfo = consolidatedCalibratedMap.get(sn);
             calibStatusCellText = calibInfo.fornecedor;
             dataCalibracao = formatExcelDate(calibInfo.dataCalibricao);
         } else {
-            row.classList.add('not-calibrated'); // Mantém o FUNDO vermelho
+            row.classList.add('not-calibrated');
             calibStatusCellText = 'Não Calibrado/Não Encontrado';
         }
 
@@ -50,13 +56,13 @@ export function renderTable(filteredEquipments, tableBodyElement, consolidatedCa
             row.classList.add('in-external-maintenance');
         }
 
-        // --- NOVA Lógica da Ronda (Estilo de FUNDO) ---
+        // --- Lógica da Ronda (Estilo de FUNDO) ---
         if (rondaResultsMap && rondaResultsMap.has(sn)) {
             const rondaInfo = rondaResultsMap.get(sn);
             const setorCadastrado = String(eq.Setor || '').trim().toUpperCase();
             
             if (rondaInfo.Localizacao && setorCadastrado !== rondaInfo.Localizacao) {
-                row.classList.add('location-divergence'); // Aplica o FUNDO amarelo
+                row.classList.add('location-divergence');
             }
         }
 
@@ -75,7 +81,21 @@ export function renderTable(filteredEquipments, tableBodyElement, consolidatedCa
     updateEquipmentCount(filteredEquipments.length);
 }
 
+/**
+ * Atualiza a contagem de equipamentos na página.
+ */
+export function updateEquipmentCount(count) {
+    const countElement = document.getElementById('equipmentCount');
+    if (countElement) {
+        countElement.textContent = `Total: ${count} equipamentos`;
+    }
+}
+
+/**
+ * Popula o dropdown de setores com base nos dados.
+ */
 export function populateSectorFilter(allEquipments, selectElement) {
+    if (!selectElement) return;
     const uniqueSectors = new Set(
         allEquipments
             .map(eq => String(eq['Setor'] || '').trim())
