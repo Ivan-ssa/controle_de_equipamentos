@@ -48,6 +48,18 @@ const exportOsButton = document.getElementById('exportOsButton');
 
 
 const headerFiltersRow = document.getElementById('headerFilters'); 
+
+// Elementos da seção de Ronda
+const rondaSectorSelect = document.getElementById('rondaSectorSelect'); // <-- ADICIONE ESTA LINHA
+const startRondaButton = document.getElementById('startRondaButton');
+const rondaFileInput = document.getElementById('rondaFileInput');
+const loadRondaButton = document.getElementById('loadRondaButton');
+const saveRondaButton = document.getElementById('saveRondaButton');
+const rondaTableBody = document.querySelector('#rondaTable tbody');
+const rondaCountSpan = document.getElementById('rondaCount');
+const divergenceTableBody = document.querySelector('#divergenceTable tbody');
+
+
 // ... (resto das suas referências DOM originais)
 
 
