@@ -1,4 +1,4 @@
-// js/ronda_mobile.js
+// js/ronda_mobile.js (VERSÃO FINAL OTIMIZADA)
 
 import { readExcelWorkbook } from './excelReader.js';
 
@@ -6,27 +6,17 @@ import { readExcelWorkbook } from './excelReader.js';
 let allEquipments = [];
 let previousRondaData = [];
 let mainEquipmentsBySN = new Map();
-let currentRondaItems = [];
-let itemsConfirmedInRonda = new Map();
-let currentEquipment = null;
+// ... (resto das variáveis de estado)
 
 // --- ELEMENTOS DO DOM ---
-const masterFileInput = document.getElementById('masterFileInput');
-const loadFileButton = document.getElementById('loadFileButton');
-const statusMessage = document.getElementById('statusMessage');
-const sectorSelectorSection = document.getElementById('sectorSelectorSection');
-const rondaSectorSelect = document.getElementById('rondaSectorSelect');
-const startRondaButton = document.getElementById('startRondaButton');
-// ... (resto dos elementos do DOM)
-const exportRondaButton = document.getElementById('exportRondaButton');
-
+// ... (sem alterações)
 
 // --- FUNÇÕES AUXILIARES ---
-function normalizeId(id) { /* ... (a sua função normalizeId) ... */ }
-function updateStatus(message, isError = false) { /* ... (a sua função updateStatus) ... */ }
+// ... (sem alterações)
 
-
-// --- LÓGICA DE CARREGAMENTO (ATUALIZADA PARA NÃO TRAVAR) ---
+// =========================================================================
+// --- LÓGICA DE CARREGAMENTO OTIMIZADA ---
+// =========================================================================
 if (loadFileButton) {
     loadFileButton.addEventListener('click', () => {
         const file = masterFileInput.files[0];
@@ -35,29 +25,56 @@ if (loadFileButton) {
             return;
         }
 
-        // 1. Mostra a mensagem inicial e desativa o botão para evitar cliques duplos
         updateStatus('A processar... Por favor, aguarde.');
         loadFileButton.disabled = true;
         
-        // 2. Usa setTimeout para dar tempo ao navegador de renderizar a mensagem acima
         setTimeout(async () => {
             try {
                 updateStatus('Passo 1/3: Lendo o ficheiro Excel...');
-                // A função await permite que o código espere aqui sem travar a interface
                 const allSheets = await readExcelWorkbook(file);
                 
-                updateStatus('Passo 2/3: Organizando dados dos equipamentos...');
-                
-                // Lógica para obter os dados das abas
-                allEquipments = allSheets.get('Equip_VBA') || [];
-                if (allEquipments.length === 0) {
+                updateStatus('Passo 2/3: Filtrando e organizando dados...');
+
+                // --- INÍCIO DA OTIMIZAÇÃO ---
+
+                // 1. Define as colunas que queremos manter para cada aba
+                const colunasEquipVBA = ['TAG', 'Equipamento', 'Fabricante', 'Modelo', 'Setor', 'Nº Série', 'Patrimônio']; // Colunas A a G
+                const colunasRonda = ['TAG', 'Equipamento', 'Fabricante', 'Modelo', 'Setor', 'Nº Série', 'Patrimônio', 'Status', 'Localização Encontrada', 'Data da Ronda', 'Observações']; // Colunas A a J (e outras importantes)
+
+                // 2. Função auxiliar para filtrar os objetos, mantendo apenas as colunas desejadas
+                const filtrarDados = (dados, colunasParaManter) => {
+                    if (!dados) return [];
+                    return dados.map(itemOriginal => {
+                        const itemFiltrado = {};
+                        colunasParaManter.forEach(coluna => {
+                            if (itemOriginal[coluna] !== undefined) {
+                                itemFiltrado[coluna] = itemOriginal[coluna];
+                            }
+                        });
+                        return itemFiltrado;
+                    });
+                };
+
+                // 3. Lê e filtra os dados das abas
+                let dadosBrutosEquipVBA = allSheets.get('Equip_VBA') || [];
+                if (dadosBrutosEquipVBA.length === 0) {
                     const firstSheetName = allSheets.keys().next().value;
-                    allEquipments = allSheets.get(firstSheetName) || [];
-                    if(allEquipments.length === 0) throw new Error("A aba de equipamentos está vazia ou não foi encontrada.");
+                    dadosBrutosEquipVBA = allSheets.get(firstSheetName) || [];
                 }
-                previousRondaData = allSheets.get('Ronda') || [];
                 
-                // Lógica para processar os dados
+                let dadosBrutosRonda = allSheets.get('Ronda') || [];
+
+                // ATRIBUI OS DADOS JÁ FILTRADOS E MAIS LEVES ÀS VARIÁVEIS GLOBAIS
+                allEquipments = filtrarDados(dadosBrutosEquipVBA, colunasEquipVBA);
+                previousRondaData = filtrarDados(dadosBrutosRonda, colunasRonda);
+
+                console.log(`Dados da 'Equip_VBA' processados. Mantidas ${colunasEquipVBA.length} colunas.`);
+                console.log(`Dados da 'Ronda' processados. Mantidas ${colunasRonda.length} colunas.`);
+                
+                // --- FIM DA OTIMIZAÇÃO ---
+                
+                if (allEquipments.length === 0) throw new Error("A aba de equipamentos está vazia ou não foi encontrada.");
+                
                 mainEquipmentsBySN.clear();
                 allEquipments.forEach(eq => {
                     const sn = normalizeId(eq['Nº Série']);
@@ -73,18 +90,16 @@ if (loadFileButton) {
                 updateStatus(`Erro ao ler o ficheiro: ${error.message}`, true);
                 console.error(error);
             } finally {
-                // 3. Reativa o botão no final, quer tenha sucesso ou falhe
                 loadFileButton.disabled = false;
             }
-        }, 100); // Um pequeno atraso de 100ms é suficiente
+        }, 100);
     });
 }
+
 
 // O resto do seu ficheiro js/ronda_mobile.js continua aqui sem alterações...
 // cole o resto das suas funções aqui.
 // --------------------------------------------------------------------------
 
 // (Funções restantes como populateSectorSelect, startRonda, exportRondaButton, etc. devem ser mantidas)
-
-// Cole aqui o resto das suas funções para que o ficheiro fique completo.
 // ...
