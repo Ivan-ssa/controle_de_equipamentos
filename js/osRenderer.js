@@ -1,5 +1,3 @@
-// js/osRenderer.js
-
 /**
  * Renderiza a tabela de Ordens de Serviço (OS) em aberto.
  * Cruza dados da OS com os status de calibração e manutenção dos equipamentos principais.
@@ -42,28 +40,26 @@ export function renderOsTable(
         const row = tableBodyElement.insertRow();
         osCount++; 
 
+        // Aplica as classes de status, se houver equipamento correspondente
         if (correspondingEquipment) {
             const equipmentMainSN = normalizeId(correspondingEquipment['Nº Série'] || correspondingEquipment.NumeroSerie); 
             
-            // Lógica para Calibração
             if (consolidatedCalibratedMap.has(equipmentMainSN)) {
-                row.classList.add('calibrated-dhme'); 
+                row.classList.add('calibrated-text'); // verde para calibrado
             }
-
-            // Lógica para Manutenção Externa
             if (externalMaintenanceSNs.has(equipmentMainSN)) {
-                row.classList.add('in-external-maintenance'); 
+                row.classList.add('in-external-maintenance'); // vermelho/itálico para manutenção externa
             }
         }
-        
+
+        // Preenche as células da linha
         row.insertCell().textContent = os['OS'] ?? '';
         row.insertCell().textContent = os['Patrimônio'] ?? ''; 
         row.insertCell().textContent = os['Nº Série'] ?? ''; 
         row.insertCell().textContent = os['Equipamento'] ?? '';
         row.insertCell().textContent = os['Modelo'] ?? '';
         row.insertCell().textContent = os['Fabricante'] ?? '';
-        
-        row.insertCell().textContent = correspondingEquipment ? correspondingEquipment['Setor'] ?? 'Não Cadastrado' : 'Não Cadastrado';
+        row.insertCell().textContent = correspondingEquipment ? (correspondingEquipment['Setor'] ?? 'Não Cadastrado') : 'Não Cadastrado';
     });
 
     document.getElementById('osCount').textContent = `Total: ${osCount} OS`;

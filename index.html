@@ -8,22 +8,21 @@
 </head>
 <body>
     <header class="main-header">
-        <h1>Dashboard de Equipamentos v.0.0.0.18</h1>
+        <h1>Dashboard de Equipamentos 003</h1>
     </header>
+
     <main class="container">
         <section class="controls-section">
             <div class="file-input-container">
-                <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" multiple>
-                <label for="excelFileInput" class="custom-file-upload">
-                    Selecionar Arquivo
-                </label>
+                <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv, .xlsm">
+                <button id="processButton" class="action-button">Processar Arquivo</button>
             </div>
-            <button id="processButton" class="action-button">Processar Arquivos</button>
             <div class="section-toggle">
                 <button id="showEquipmentButton" class="toggle-section-button active">Equipamentos</button>
                 <button id="showOsButton" class="toggle-section-button">OS em Aberto</button>
                 <button id="showDivergenceButton" class="toggle-section-button">Ver Divergências</button>
                 <button id="showRondaButton" class="toggle-section-button">Ronda</button>
+                <a href="ronda_mobile.html" target="_blank" class="toggle-section-button mobile-ronda-button">▶ Iniciar Ronda (Celular)</a>
             </div>
         </section>
 
@@ -31,16 +30,9 @@
 
         <section id="equipmentSection" class="table-section">
             <h2>Equipamentos Cadastrados <span id="equipmentCount">Total: 0 equipamentos</span></h2>
-            <div class="filters-container">
-                <select id="sectorFilter">
-                    <option value="">Todos os Setores</option>
-                </select>
-                <select id="calibrationStatusFilter">
-                    <option value="">Status da Calibração</option>
-                    <option value="Calibrado (Consolidado)">Calibrado (Consolidado)</option>
-                    <option value="Não Calibrado/Não Encontrado (Seu Cadastro)">Não Calibrado/Não Encontrado (Seu Cadastro)</option>
-                    <option value="Calibrado (Total)">Calibrado (Total)</option>
-                </select>
+            <div id="filterContainer">
+                <select id="sectorFilter"><option value="">Todos os Setores</option></select>
+                <select id="calibrationStatusFilter"><option value="">Status da Calibração</option></select>
                 <select id="maintenanceFilter">
                     <option value="">Todos os Status de Manutenção</option>
                     <option value="manutencao_sim">Em Manutenção Externa</option>
@@ -48,29 +40,17 @@
                 </select>
                 <input type="text" id="searchInput" placeholder="Buscar por SN/Patrimônio/TAG...">
             </div>
-
             <div class="table-wrapper">
                 <table id="equipmentTable" class="styled-table">
                     <thead>
                         <tr class="table-headers-row">
-                            <th>TAG</th>
-                            <th>Equipamento</th>
-                            <th>Modelo</th>
-                            <th>Fabricante</th>
-                            <th>Setor</th>
-                            <th>Nº Série</th>
-                            <th>Patrimônio</th>
-                            <th>Fornecedor</th>
-                            <th>Data Calibração</th>
-                            <th>Data Vencimento Calibração</th>
+                            <th>TAG</th><th>Equipamento</th><th>Modelo</th><th>Fabricante</th>
+                            <th>Setor</th><th>Nº Série</th><th>Patrimônio</th><th>Fornecedor</th>
+                            <th>Data Calibração</th><th>Data Vencimento Calibração</th>
                         </tr>
                         <tr id="headerFilters"></tr>
                     </thead>
-                    <tbody id="equipmentTableBody">
-                        <tr>
-                            <td colspan="10" style="text-align: center;">Selecione os arquivos Excel para começar.</td>
-                        </tr>
-                    </tbody>
+                    <tbody id="equipmentTableBody"></tbody>
                 </table>
             </div>
             <button id="exportButton" class="export-button">Exportar Equipamentos (Excel)</button>
@@ -78,6 +58,7 @@
         
         <section id="osSection" class="table-section hidden">
             <h2>Ordens de Serviço em Aberto <span id="osCount">Total: 0 OS</span></h2>
+            <button id="exportOsButton" class="export-button">Exportar OS (Excel)</button>
             <div class="table-wrapper">
                 <table id="osTable" class="styled-table">
                     <thead>
@@ -94,7 +75,6 @@
                     <tbody id="osTableBody"></tbody>
                 </table>
             </div>
-            <button id="exportOsButton" class="export-button">Exportar OS (Excel)</button>
         </section>
 
         <section id="divergenceSection" class="table-section hidden">
@@ -103,54 +83,22 @@
                 <table id="divergenceTable" class="styled-table">
                     <thead>
                         <tr>
-                            <th>Número de Série</th>
+                            <th>Nº Série</th>
                             <th>Fornecedor</th>
-                            <th>Data de Calibração</th>
+                            <th>Data Calibração</th>
                         </tr>
                     </thead>
                     <tbody id="divergenceTableBody"></tbody>
                 </table>
             </div>
-            <button id="exportDivergenceButton" class="export-button">Exportar Divergências (Excel)</button>
         </section>
-        
-        <section id="rondaSection" class="table-section hidden">
-            <h2>Ronda <span id="rondaCount">Total: 0 equipamentos</span></h2>
-            <div class="ronda-controls">
-                <select id="rondaSectorSelect">
-                    <option value="">Selecione um Setor</option>
-                </select>
-                <button id="startRondaButton" class="action-button">Gerar Lista de Ronda</button>
-            </div>
-            <div class="file-input-container">
-                <input type="file" id="rondaFileInput" accept=".xlsx, .xls, .csv">
-                <label for="rondaFileInput" class="custom-file-upload">
-                    Carregar Ronda Existente
-                </label>
-            </div>
-            <div class="table-wrapper">
-                <table id="rondaTable" class="styled-table">
-                    <thead>
-                        <tr>
-                            <th>TAG</th>
-                            <th>Equipamento</th>
-                            <th>Nº Série</th>
-                            <th>Patrimônio</th>
-                            <th>Setor</th>
-                            <th>Leitura</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="rondaTableBody"></tbody>
-                </table>
-            </div>
-            <button id="saveRondaButton" class="export-button">Salvar Ronda (Excel)</button>
-        </section>
-
     </main>
+
     <footer>
-        <p>&copy; 2024 Dashboard de Equipamentos</p>
+        <p>&copy; 2025 Dashboard de Equipamentos</p>
     </footer>
+
+    <!-- Bibliotecas para Excel -->
     <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/exceljs/dist/exceljs.min.js"></script>
     <script type="module" src="js/main.js"></script>
