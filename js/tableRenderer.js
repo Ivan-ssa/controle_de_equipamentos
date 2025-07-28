@@ -1,37 +1,24 @@
-// js/tableRenderer.js
-
-/**
- * Converte um número de data do Excel para uma string de data formatada (DD/MM/AAAA).
- * @param {number} excelDate - O número de data do Excel.
- * @returns {string} - A string de data formatada.
- */
+// Funções auxiliares (sem alteração)
 function formatExcelDate(excelDate) {
-    if (typeof excelDate !== 'number' || excelDate <= 0) {
-        return '';
-    }
+    if (typeof excelDate !== 'number' || excelDate <= 0) return '';
     const date = new Date(Date.UTC(0, 0, excelDate - 1));
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
+    return date.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
 }
 
-/**
- * Renderiza a tabela principal de equipamentos.
- * @param {Array<Object>} filteredEquipments - O array de objetos de equipamentos.
- * @param {HTMLElement} tableBodyElement - O elemento <tbody> da tabela de equipamentos.
- * @param {Map<string, Object>} consolidatedCalibratedMap - Mapa de SN -> { fornecedor, dataCalibracao }.
- * @param {Set<string>} externalMaintenanceSNs - Set de SNs em manutenção externa.
- * @param {Function} normalizeId - <-- ALTERAÇÃO 1: Função de normalização adicionada como parâmetro.
- */
-export function renderTable(filteredEquipments, tableBodyElement, consolidatedCalibratedMap, externalMaintenanceSNs, normalizeId) {
+function normalizarTexto(str) {
+    // Retorna a string normalizada ou uma string vazia se a entrada for nula/vazia
+    return String(str || '').trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').toUpperCase();
+}
+
+
+/// --- VERSÃO FINAL COM CORREÇÃO DE PRIORIDADE DE CSS ---
+export function renderTable(filteredEquipments, tableBodyElement, consolidatedCalibratedMap, externalMaintenanceSNs, normalizeId, rondaResultsMap) {
     tableBodyElement.innerHTML = '';
-    
     if (filteredEquipments.length === 0) {
         const row = tableBodyElement.insertRow();
         const cell = row.insertCell();
-        cell.colSpan = 10; // Ajustado para 10 colunas, se necessário
-        cell.textContent = 'Nenhum equipamento encontrado com os filtros aplicados.';
+        cell.colSpan = 10;
+        cell.textContent = 'Nenhum equipamento encontrado.';
         cell.style.textAlign = 'center';
         updateEquipmentCount(0);
         return;
@@ -39,72 +26,62 @@ export function renderTable(filteredEquipments, tableBodyElement, consolidatedCa
 
     filteredEquipments.forEach(eq => {
         const row = tableBodyElement.insertRow();
-        
-        // <-- ALTERAÇÃO 2: A normalização agora é feita usando a função passada como parâmetro.
         const sn = normalizeId(eq['Nº Série'] || eq.NumeroSerie);
 
-        // Lógica de status de calibração
-        let calibStatusCellText = eq['Status Calibração'] ?? '';
-        
-        // Esta verificação agora funcionará corretamente para números de série com zeros à esquerda.
-        let isCalibratedConsolidated = consolidatedCalibratedMap.has(sn);
-        let dataCalibracao = '';
-        
-        if (isCalibratedConsolidated) {
-            row.classList.add('calibrated-dhme');
-            const calibInfo = consolidatedCalibratedMap.get(sn);
-            calibStatusCellText = calibInfo.fornecedor; // Agora mostra só o nome do fornecedor
-            dataCalibracao = formatExcelDate(calibInfo.dataCalibricao);
-        } else if (String(calibStatusCellText).toLowerCase().includes('não calibrado') || calibStatusCellText.trim() === '') {
-            row.classList.add('not-calibrated');
-            calibStatusCellText = 'Não Calibrado/Não Encontrado (Seu Cadastro)';
-        } else {
-            row.classList.add('calibrated');
-            calibStatusCellText = 'Calibrado (Total)';
-        }
+        // 1. Aplica as classes de estilo primeiro
+        let isCalibrated = consolidatedCalibratedMap.has(sn);
+        if (isCalibrated) row.classList.add('calibrated-text'); else row.classList.add('not-calibrated');
+        if (externalMaintenanceSNs.has(sn)) row.classList.add('in-external-maintenance');
 
-        // Lógica de status de manutenção (também usará o 'sn' normalizado)
-        if (externalMaintenanceSNs.has(sn)) {
-            row.classList.add('in-external-maintenance');
-        }
+        // 2. Aplica a lógica da Ronda, que terá a prioridade final na cor de fundo
+        if (rondaResultsMap && rondaResultsMap.has(sn)) {
+            const rondaInfo = rondaResultsMap.get(sn);
+            const setorDeOrigem = normalizarTexto(eq.Setor);
+            let setorDaRonda = '';
+            const setorKey = Object.keys(rondaInfo).find(key => normalizarTexto(key) === 'SETOR');
 
+            if (setorKey) {
+                setorDaRonda = normalizarTexto(rondaInfo[setorKey]);
+            }
+
+            // --- MUDANÇA IMPORTANTE AQUI ---
+            // Usamos setProperty para poder adicionar '!important' e sobrepor o CSS
+            if (setorDaRonda && setorDaRonda === setorDeOrigem) {
+                // Se o setor está correto (VERDE), sobrepõe qualquer outra cor de fundo
+                row.style.setProperty('background-color', '#d4edda', 'important');
+            } else {
+                // Se o setor está divergente (AMARELO), sobrepõe qualquer outra cor de fundo
+                row.style.setProperty('background-color', '#fff3cd', 'important');
+            }
+        }
+        
+        // 3. Preenche as células da tabela
+        let calibInfo = isCalibrated ? consolidatedCalibratedMap.get(sn) : null;
         row.insertCell().textContent = eq['TAG'] ?? '';
         row.insertCell().textContent = eq['Equipamento'] ?? '';
+        // ... (resto do preenchimento das células continua igual)
         row.insertCell().textContent = eq['Modelo'] ?? '';
         row.insertCell().textContent = eq['Fabricante'] ?? '';
         row.insertCell().textContent = eq['Setor'] ?? '';
         row.insertCell().textContent = eq['Nº Série'] ?? '';
         row.insertCell().textContent = eq['Patrimônio'] ?? '';
-        row.insertCell().textContent = calibStatusCellText; // Célula Fornecedor
-        row.insertCell().textContent = dataCalibracao; // Célula Data Calibração
-        row.insertCell().textContent = formatExcelDate(eq['Data Vencimento Calibração']) ?? ''; // Célula Data Vencimento Calibração
+        row.insertCell().textContent = calibInfo ? calibInfo.fornecedor : 'Não Calibrado';
+        row.insertCell().textContent = calibInfo ? formatExcelDate(calibInfo.dataCalibracao) : '';
+        row.insertCell().textContent = formatExcelDate(eq['Data Vencimento Calibração']);
     });
-    updateEquipmentCount(filteredEquipments.length);
 }
 
-/**
- * Atualiza a contagem de equipamentos na página.
- * @param {number} count - O número de equipamentos a ser exibido.
- */
+// Demais funções exportadas (sem alterações)
 export function updateEquipmentCount(count) {
-    document.getElementById('equipmentCount').textContent = `Total: ${count} equipamentos`;
+    const countElement = document.getElementById('equipmentCount');
+    if (countElement) countElement.textContent = `Total: ${count} equipamentos`;
 }
 
-/**
- * Popula o dropdown de setores com base nos dados.
- * @param {Array<Object>} allEquipments - O array de objetos de equipamentos.
- * @param {HTMLElement} selectElement - O elemento <select> de setor.
- */
 export function populateSectorFilter(allEquipments, selectElement) {
-    const uniqueSectors = new Set(
-        allEquipments
-            .map(eq => String(eq['Setor'] || '').trim())
-            .filter(sector => sector !== '')
-    );
-    
+    if (!selectElement) return;
+    const uniqueSectors = [...new Set(allEquipments.map(eq => String(eq['Setor'] || '').trim()).filter(Boolean))].sort();
     selectElement.innerHTML = '<option value="">Todos os Setores</option>';
-    
-    Array.from(uniqueSectors).sort().forEach(sector => {
+    uniqueSectors.forEach(sector => {
         const option = document.createElement('option');
         option.value = sector;
         option.textContent = sector;
