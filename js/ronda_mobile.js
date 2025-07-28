@@ -231,44 +231,61 @@ if (confirmItemButton) {
 }
 
 // =========================================================================
-// --- FUNÇÃO DE EXPORTAÇÃO CORRIGIDA ---
+// --- NOVA FUNÇÃO DE EXPORTAÇÃO COMPLETA ---
 // =========================================================================
 if (exportRondaButton) {
     exportRondaButton.addEventListener('click', () => {
-        if (itemsConfirmedInRonda.size === 0) {
-            alert("Nenhum item foi confirmado na ronda para exportar.");
+        if (allEquipments.length === 0) {
+            alert("O arquivo mestre não foi carregado. Não há dados para exportar.");
             return;
         }
-        
-        // 1. Define os cabeçalhos de acordo com a sua imagem
+
+        // 1. FAZ UMA CÓPIA DO ARQUIVO MESTRE ORIGINAL
+        // Usamos JSON.parse(JSON.stringify(...)) para garantir uma cópia profunda e não alterar o original
+        const dadosParaExportar = JSON.parse(JSON.stringify(allEquipments));
+
+        // 2. ATUALIZA A CÓPIA COM OS DADOS DA RONDA ATUAL
+        const dataDaRonda = new Date().toLocaleDateString('pt-BR');
+
+        dadosParaExportar.forEach(equipamento => {
+            const sn = normalizeId(equipamento['Nº Série']);
+
+            // Verifica se este equipamento foi confirmado na ronda atual
+            if (itemsConfirmedInRonda.has(sn)) {
+                const infoDaRonda = itemsConfirmedInRonda.get(sn);
+
+                // Atualiza as colunas do equipamento com os novos dados da ronda
+                equipamento['Status'] = infoDaRonda.Status;
+                equipamento['Localização Encontrada'] = infoDaRonda['Localização Encontrada'];
+                equipamento['Observações'] = infoDaRonda.Observações;
+                equipamento['Data da Ronda'] = dataDaRonda;
+            }
+        });
+
+        console.log("Dados finais mesclados para exportação:", dadosParaExportar);
+
+        // 3. DEFINE OS CABEÇALHOS NA ORDEM CORRETA DO ARQUIVO MESTRE
         const headers = [
-            'SN', 
-            'Status', 
-            'Setor Original', 
-            'Localização Encontrada', 
-            'Observações'
+            'TAG', 'Equipamento', 'Fabricante', 'Modelo', 'Setor', 'Nº Série',
+            'Patrimônio', 'Fornecedor', 'Data Calibração', 'Data Vencimento Calibração',
+            'Manutenção Externa', 'OS', 'Status', 'Localização Encontrada',
+            'Data da Ronda', 'Observações'
         ];
 
-        // 2. Cria as linhas de dados
-        const data = Array.from(itemsConfirmedInRonda.values()).map(info => [
-            info['Nº de Série'],
-            info.Status,
-            info['Setor Original'],
-            info['Localização Encontrada'],
-            info['Observações']
-        ]);
+        // 4. CONVERTE OS DADOS PARA O FORMATO DA PLANILHA (ARRAY DE ARRAYS)
+        const dadosParaPlanilha = dadosParaExportar.map(item => {
+            return headers.map(header => item[header] || ''); // Garante a ordem e preenche com vazio se não houver dado
+        });
 
-        // Adiciona os cabeçalhos no início do array de dados
-        data.unshift(headers);
+        // Adiciona a linha de cabeçalhos no topo
+        dadosParaPlanilha.unshift(headers);
 
-        // 3. Cria a planilha a partir do array de dados
-        const worksheet = XLSX.utils.aoa_to_sheet(data);
+        // 5. GERA E DESCARREGA O FICHEIRO EXCEL
+        const worksheet = XLSX.utils.aoa_to_sheet(dadosParaPlanilha);
         const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Relatorio Ronda');
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Equip_VBA_Atualizado');
 
-        // 4. Gera e descarrega o ficheiro Excel
-        const dataFormatada = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
-        const nomeFicheiro = `Relatorio_Ronda_${rondaSectorSelect.value}_${dataFormatada}.xlsx`;
+        const nomeFicheiro = `Controle_Equipamentos_Ronda_${dataDaRonda.replace(/\//g, '-')}.xlsx`;
         XLSX.writeFile(workbook, nomeFicheiro);
     });
 }
