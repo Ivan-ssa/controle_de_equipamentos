@@ -1,22 +1,16 @@
-// js/ronda_mobile.js (VERSÃO FINAL OTIMIZADA)
+// js/ronda_mobile.js
 
-import { readExcelWorkbook } from './excelReader.js';
+import { readOptimizedExcelWorkbook } from './excelReader.js'; // Importa a nova função OTIMIZADA
 
 // --- ESTADO DA APLICAÇÃO ---
 let allEquipments = [];
 let previousRondaData = [];
-let mainEquipmentsBySN = new Map();
-// ... (resto das variáveis de estado)
+// ... (resto das variáveis)
 
 // --- ELEMENTOS DO DOM ---
 // ... (sem alterações)
 
-// --- FUNÇÕES AUXILIARES ---
-// ... (sem alterações)
-
-// =========================================================================
-// --- LÓGICA DE CARREGAMENTO OTIMIZADA ---
-// =========================================================================
+// --- LÓGICA DE CARREGAMENTO (OTIMIZADA) ---
 if (loadFileButton) {
     loadFileButton.addEventListener('click', () => {
         const file = masterFileInput.files[0];
@@ -25,63 +19,35 @@ if (loadFileButton) {
             return;
         }
 
-        updateStatus('A processar... Por favor, aguarde.');
+        updateStatus('A processar de forma otimizada...');
         loadFileButton.disabled = true;
         
         setTimeout(async () => {
             try {
-                updateStatus('Passo 1/3: Lendo o ficheiro Excel...');
-                const allSheets = await readExcelWorkbook(file);
-                
-                updateStatus('Passo 2/3: Filtrando e organizando dados...');
-
-                // --- INÍCIO DA OTIMIZAÇÃO ---
-
-                // 1. Define as colunas que queremos manter para cada aba
-                const colunasEquipVBA = ['TAG', 'Equipamento', 'Fabricante', 'Modelo', 'Setor', 'Nº Série', 'Patrimônio']; // Colunas A a G
-                const colunasRonda = ['TAG', 'Equipamento', 'Fabricante', 'Modelo', 'Setor', 'Nº Série', 'Patrimônio', 'Status', 'Localização Encontrada', 'Data da Ronda', 'Observações']; // Colunas A a J (e outras importantes)
-
-                // 2. Função auxiliar para filtrar os objetos, mantendo apenas as colunas desejadas
-                const filtrarDados = (dados, colunasParaManter) => {
-                    if (!dados) return [];
-                    return dados.map(itemOriginal => {
-                        const itemFiltrado = {};
-                        colunasParaManter.forEach(coluna => {
-                            if (itemOriginal[coluna] !== undefined) {
-                                itemFiltrado[coluna] = itemOriginal[coluna];
-                            }
-                        });
-                        return itemFiltrado;
-                    });
+                // 1. Define exatamente quais colunas ler para cada aba
+                const configDeLeitura = {
+                    'Equip_VBA': ['TAG', 'Equipamento', 'Fabricante', 'Modelo', 'Setor', 'Nº Série', 'Patrimônio'],
+                    'Ronda': [
+                        'TAG', 'Equipamento', 'Fabricante', 'Modelo', 'Setor', 'Nº Série',
+                        'Patrimônio', 'Status', 'Localização Encontrada', 'Data da Ronda', 'Observações'
+                    ]
                 };
 
-                // 3. Lê e filtra os dados das abas
-                let dadosBrutosEquipVBA = allSheets.get('Equip_VBA') || [];
-                if (dadosBrutosEquipVBA.length === 0) {
-                    const firstSheetName = allSheets.keys().next().value;
-                    dadosBrutosEquipVBA = allSheets.get(firstSheetName) || [];
-                }
-                
-                let dadosBrutosRonda = allSheets.get('Ronda') || [];
+                // 2. Chama a nova função otimizada com a configuração
+                const allSheets = await readOptimizedExcelWorkbook(file, configDeLeitura);
 
-                // ATRIBUI OS DADOS JÁ FILTRADOS E MAIS LEVES ÀS VARIÁVEIS GLOBAIS
-                allEquipments = filtrarDados(dadosBrutosEquipVBA, colunasEquipVBA);
-                previousRondaData = filtrarDados(dadosBrutosRonda, colunasRonda);
+                allEquipments = allSheets.get('Equip_VBA') || [];
+                previousRondaData = allSheets.get('Ronda') || [];
 
-                console.log(`Dados da 'Equip_VBA' processados. Mantidas ${colunasEquipVBA.length} colunas.`);
-                console.log(`Dados da 'Ronda' processados. Mantidas ${colunasRonda.length} colunas.`);
-                
-                // --- FIM DA OTIMIZAÇÃO ---
-                
-                if (allEquipments.length === 0) throw new Error("A aba de equipamentos está vazia ou não foi encontrada.");
-                
+                if (allEquipments.length === 0) throw new Error("A aba 'Equip_VBA' não foi encontrada ou está vazia.");
+                console.log(`Leitura otimizada: ${allEquipments.length} equipamentos e ${previousRondaData.length} registos de ronda carregados.`);
+
                 mainEquipmentsBySN.clear();
                 allEquipments.forEach(eq => {
                     const sn = normalizeId(eq['Nº Série']);
                     if (sn) mainEquipmentsBySN.set(sn, eq);
                 });
 
-                updateStatus('Passo 3/3: A preparar a interface...');
                 populateSectorSelect(allEquipments);
                 sectorSelectorSection.classList.remove('hidden');
                 updateStatus('Ficheiro mestre carregado! Selecione um setor.', false);
@@ -100,6 +66,5 @@ if (loadFileButton) {
 // O resto do seu ficheiro js/ronda_mobile.js continua aqui sem alterações...
 // cole o resto das suas funções aqui.
 // --------------------------------------------------------------------------
-
-// (Funções restantes como populateSectorSelect, startRonda, exportRondaButton, etc. devem ser mantidas)
+// (Funções restantes como normalizeId, populateSectorSelect, startRonda, exportRondaButton, etc. devem ser mantidas)
 // ...

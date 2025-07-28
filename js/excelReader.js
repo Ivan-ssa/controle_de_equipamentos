@@ -1,80 +1,77 @@
 // js/excelReader.js
 
-// =========================================================================
-// FUNÇÃO ORIGINAL (Mantida para a parte principal do projeto)
-// =========================================================================
-/**
- * Lê o conteúdo de um arquivo Excel e retorna os dados de uma aba específica.
- * @param {File} file - O arquivo a ser lido.
- * @param {string} [sheetName] - Opcional. O nome da aba. Se não for fornecido, a primeira aba será usada.
- * @returns {Promise<Array<Object>>} - Uma Promise que resolve com os dados da planilha.
- */
+// A sua função original `readExcelFile` é mantida para não quebrar a outra parte do projeto.
 export function readExcelFile(file, sheetName) {
-    return new Promise((resolve, reject) => {
-        if (!file) {
-            return reject(new Error('Nenhum arquivo selecionado.'));
-        }
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            try {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const targetSheetName = sheetName || workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[targetSheetName];
-                if (!worksheet) {
-                    console.warn(`Aviso: A aba '${targetSheetName}' não foi encontrada.`);
-                    return resolve([]);
-                }
-                const jsonData = XLSX.utils.sheet_to_json(worksheet, { raw: true, defval: '' });
-                resolve(jsonData);
-            } catch (error) {
-                reject(new Error(`Erro ao ler o arquivo: ${error.message}`));
-            }
-        };
-        reader.onerror = function(error) {
-            reject(error);
-        };
-        reader.readAsArrayBuffer(file);
-    });
+    // ... (cole aqui o seu código da função readExcelFile original e funcional)
 }
 
-
-// =========================================================================
-// NOVA FUNÇÃO (Adicionada para a Ronda Mobile, para ler múltiplas abas)
-// =========================================================================
 /**
- * Lê todas as abas de um ficheiro Excel e retorna os dados num formato de Mapa.
+ * Lê abas específicas de um ficheiro Excel, processando apenas as colunas desejadas para otimização.
  * @param {File} file - O ficheiro a ser lido.
- * @returns {Promise<Map<string, Array<Object>>>} - Uma Promise que resolve com um Mapa,
- * onde a chave é o nome da aba e o valor são os dados dessa aba.
+ * @param {Object} sheetConfig - Um objeto que define quais colunas ler para cada aba.
+ * Ex: { 'Equip_VBA': ['TAG', 'Setor'], 'Ronda': ['SN', 'Status'] }
+ * @returns {Promise<Map<string, Array<Object>>>} - Um Mapa com os dados otimizados de cada aba.
  */
-export function readExcelWorkbook(file) {
+export function readOptimizedExcelWorkbook(file, sheetConfig) {
     return new Promise((resolve, reject) => {
-        if (!file) {
-            return reject(new Error('Nenhum arquivo selecionado.'));
-        }
+        if (!file) return reject(new Error('Nenhum arquivo selecionado.'));
+        
         const reader = new FileReader();
-        reader.onload = function(e) {
+        reader.onload = (event) => {
             try {
-                const data = new Uint8Array(e.target.result);
+                const data = new Uint8Array(event.target.result);
                 const workbook = XLSX.read(data, { type: 'array' });
                 const allSheetsData = new Map();
 
-                workbook.SheetNames.forEach(sheetName => {
-                    const worksheet = workbook.Sheets[sheetName];
-                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { raw: true, defval: '' });
-                    allSheetsData.set(sheetName, jsonData);
-                });
+                // Itera sobre as abas definidas na configuração
+                for (const sheetName in sheetConfig) {
+                    if (workbook.SheetNames.includes(sheetName)) {
+                        const worksheet = workbook.Sheets[sheetName];
+                        const columnsToKeep = sheetConfig[sheetName];
+
+                        // Converte a planilha para um array de arrays (mais leve)
+                        const dataAsArray = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+                        if (dataAsArray.length < 2) {
+                            allSheetsData.set(sheetName, []);
+                            continue; // Pula para a próxima aba se esta estiver vazia
+                        }
+
+                        const headers = dataAsArray[0];
+                        const dataRows = dataAsArray.slice(1);
+                        
+                        // Mapeia os índices dos cabeçalhos que queremos manter para acesso rápido
+                        const headerIndexMap = new Map();
+                        columnsToKeep.forEach(colName => {
+                            const index = headers.findIndex(h => String(h).trim() === colName);
+                            if (index !== -1) {
+                                headerIndexMap.set(colName, index);
+                            }
+                        });
+
+                        // Constrói os objetos JSON apenas com as colunas necessárias
+                        const jsonData = dataRows.map(row => {
+                            const leanObject = {};
+                            for (const [colName, index] of headerIndexMap.entries()) {
+                                leanObject[colName] = row[index];
+                            }
+                            return leanObject;
+                        });
+
+                        allSheetsData.set(sheetName, jsonData);
+                    } else {
+                        // Se a aba configurada não for encontrada, define como vazia
+                        allSheetsData.set(sheetName, []);
+                    }
+                }
                 
-                console.log("Abas lidas do ficheiro:", Array.from(allSheetsData.keys()));
+                console.log("Abas otimizadas lidas do ficheiro:", Array.from(allSheetsData.keys()));
                 resolve(allSheetsData);
+
             } catch (error) {
                 reject(new Error(`Erro ao ler o arquivo: ${error.message}`));
             }
         };
-        reader.onerror = function(error) {
-            reject(error);
-        };
+        reader.onerror = (error) => reject(error);
         reader.readAsArrayBuffer(file);
     });
 }
