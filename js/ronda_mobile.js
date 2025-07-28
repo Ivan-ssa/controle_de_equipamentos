@@ -1,15 +1,16 @@
-// js/ronda_mobile.js (VERSÃO FINAL)
+// js/ronda_mobile.js
 
-import { readExcelFile } from './excelReader.js';
+import { readExcelWorkbook } from './excelReader.js'; // Alterado para importar a nova função
 
 // --- ESTADO DA APLICAÇÃO ---
-let allEquipments = [];
+let allEquipments = [];      // Dados da aba 'Equip_VBA'
+let previousRondaData = [];  // Dados da aba 'Ronda'
 let mainEquipmentsBySN = new Map();
 let currentRondaItems = [];
 let itemsConfirmedInRonda = new Map();
 let currentEquipment = null;
 
-// --- ELEMENTOS DO DOM ---
+// --- ELEMENTOS DO DOM (sem alterações) ---
 const masterFileInput = document.getElementById('masterFileInput');
 const loadFileButton = document.getElementById('loadFileButton');
 const statusMessage = document.getElementById('statusMessage');
@@ -29,16 +30,13 @@ const rondaCounter = document.getElementById('rondaCounter');
 const rondaList = document.getElementById('rondaList');
 const exportRondaButton = document.getElementById('exportRondaButton');
 
-
+// --- FUNÇÕES AUXILIARES ---
 function normalizeId(id) {
     if (id === null || id === undefined) return '';
     let strId = String(id).trim();
-    // Se a string for composta apenas por dígitos...
     if (/^\d+$/.test(strId)) {
-        // Converte para número para remover zeros à esquerda e depois para string novamente.
         return String(parseInt(strId, 10));
     }
-    // Para outros casos (letras e números), apenas converte para maiúsculas.
     return strId.toUpperCase();
 }
 
@@ -49,18 +47,112 @@ function updateStatus(message, isError = false) {
     }
 }
 
-// --- LÓGICA PRINCIPAL ---
+// --- LÓGICA DE CARREGAMENTO (ATUALIZADA) ---
+if (loadFileButton) {
+    loadFileButton.addEventListener('click', async () => {
+        const file = masterFileInput.files[0];
+        if (!file) {
+            updateStatus('Por favor, selecione um arquivo.', true);
+            return;
+        }
+        updateStatus('Lendo ficheiro mestre...');
+        try {
+            // Usa a nova função para ler todas as abas de uma vez
+            const allSheets = await readExcelWorkbook(file);
 
+            // Tenta obter os dados da aba 'Equip_VBA'
+            allEquipments = allSheets.get('Equip_VBA') || [];
+            if (allEquipments.length === 0) {
+                const firstSheetName = allSheets.keys().next().value;
+                allEquipments = allSheets.get(firstSheetName) || [];
+                if(allEquipments.length === 0) throw new Error("A aba de equipamentos está vazia ou não foi encontrada.");
+                console.log(`Aba 'Equip_VBA' não encontrada, a usar a primeira aba: '${firstSheetName}'`);
+            }
+
+            // Tenta obter os dados da aba 'Ronda'. Se não existir, começa com uma lista vazia.
+            previousRondaData = allSheets.get('Ronda') || [];
+            console.log(`Encontrados ${previousRondaData.length} registos na aba 'Ronda' anterior.`);
+            
+            mainEquipmentsBySN.clear();
+            allEquipments.forEach(eq => {
+                const sn = normalizeId(eq['Nº Série']);
+                if (sn) mainEquipmentsBySN.set(sn, eq);
+            });
+
+            populateSectorSelect(allEquipments);
+            sectorSelectorSection.classList.remove('hidden');
+            updateStatus('Ficheiro mestre carregado! Selecione um setor.', false);
+
+        } catch (error) {
+            updateStatus(`Erro ao ler o ficheiro: ${error.message}`, true);
+            console.error(error);
+        }
+    });
+}
+
+// --- LÓGICA DE EXPORTAÇÃO (NOVA E CORRIGIDA) ---
+if (exportRondaButton) {
+    exportRondaButton.addEventListener('click', () => {
+        if (itemsConfirmedInRonda.size === 0) {
+            alert("Nenhum item foi verificado nesta ronda para exportar.");
+            return;
+        }
+
+        const rondaFinalMap = new Map();
+        previousRondaData.forEach(item => {
+            const sn = normalizeId(item['SN'] || item['Nº Série']);
+            if (sn) rondaFinalMap.set(sn, item);
+        });
+
+        const dataDaRonda = new Date().toLocaleDateString('pt-BR');
+        itemsConfirmedInRonda.forEach((newInfo, sn) => {
+            const itemExistente = rondaFinalMap.get(sn) || {};
+            const masterInfo = mainEquipmentsBySN.get(sn) || {};
+
+            rondaFinalMap.set(sn, {
+                ...itemExistente,
+                ...masterInfo,
+                'SN': newInfo['Nº de Série'],
+                'Setor': newInfo['Setor Original'],
+                'Status': newInfo.Status,
+                'Localização Encontrada': newInfo['Localização Encontrada'],
+                'Observações': newInfo.Observações,
+                'Data da Ronda': dataDaRonda
+            });
+        });
+
+        const dadosParaExportar = Array.from(rondaFinalMap.values());
+        const headers = [
+            'TAG', 'Equipamento', 'Fabricante', 'Modelo', 'Setor', 'Nº Série',
+            'Patrimônio', 'Fornecedor', 'Data Calibração', 'Data Vencimento Calibração',
+            'Manutenção Externa', 'OS', 'Status', 'Localização Encontrada',
+            'Data da Ronda', 'Observações'
+        ];
+
+        const dadosParaPlanilha = dadosParaExportar.map(item => {
+            item['Nº Série'] = item['SN'] || item['Nº Série'];
+            return headers.map(header => item[header] || '');
+        });
+        dadosParaPlanilha.unshift(headers);
+
+        const worksheet = XLSX.utils.aoa_to_sheet(dadosParaPlanilha);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Ronda');
+
+        const nomeFicheiro = `Ronda_Atualizada_${dataDaRonda.replace(/\//g, '-')}.xlsx`;
+        XLSX.writeFile(workbook, nomeFicheiro);
+    });
+}
+
+// --- FUNÇÕES RESTANTES (sem alterações) ---
 function populateSectorSelect(equipments) {
     if (!rondaSectorSelect) {
         console.error("ERRO CRÍTICO: O elemento <select> com id 'rondaSectorSelect' não foi encontrado no HTML.");
         updateStatus("Erro de interface: Seletor de setor não encontrado.", true);
         return;
     }
-
     const sectors = equipments.map(eq => String(eq.Setor || '').trim()).filter(Boolean);
     const uniqueSectors = [...new Set(sectors)].sort();
-
     rondaSectorSelect.innerHTML = '<option value="">Selecione um setor...</option>';
     uniqueSectors.forEach(sector => {
         const option = document.createElement('option');
@@ -77,37 +169,12 @@ function startRonda(sector) {
     }
     currentRondaItems = allEquipments.filter(eq => String(eq.Setor || '').trim() === sector);
     itemsConfirmedInRonda.clear();
-
     rondaSection.classList.remove('hidden');
     rondaListSection.classList.remove('hidden');
-
     updateRondaCounter();
-    if (rondaList) rondaList.innerHTML = ''; 
-    
+    if (rondaList) rondaList.innerHTML = '';
     searchInput.value = '';
     searchInput.focus();
-}
-
-function renderRondaList() {
-    if (!rondaList) return;
-    rondaList.innerHTML = '';
-    currentRondaItems.forEach(item => {
-        const li = document.createElement('li');
-        const sn = normalizeId(item['Nº Série'] || item.NumeroSerie);
-        li.dataset.sn = sn;
-        li.textContent = `${item.Equipamento} (SN: ${sn})`;
-
-        if (itemsConfirmedInRonda.has(sn)) {
-            li.classList.add('confirmed');
-            const rondaInfo = itemsConfirmedInRonda.get(sn);
-            if (rondaInfo.divergence) {
-                li.classList.add('divergence');
-            }
-        } else {
-            li.classList.add('pending');
-        }
-        rondaList.appendChild(li);
-    });
 }
 
 function updateRondaCounter() {
@@ -125,41 +192,9 @@ function displayEquipment(equipment) {
             <p><strong>Setor Original:</strong> ${equipment.Setor || 'N/A'}</p>
         `;
     }
-    if (searchResult) {
-        searchResult.classList.remove('hidden');
-    }
+    if (searchResult) searchResult.classList.remove('hidden');
     locationInput.value = '';
     obsInput.value = '';
-}
-
-// --- EVENT LISTENERS ---
-
-if (loadFileButton) {
-    loadFileButton.addEventListener('click', async () => {
-        const file = masterFileInput.files[0];
-        if (!file) {
-            updateStatus('Por favor, selecione um arquivo.', true);
-            return;
-        }
-        updateStatus('Lendo arquivo mestre...');
-        try {
-            allEquipments = await readExcelFile(file, 'Equip_VBA');
-            
-            mainEquipmentsBySN.clear();
-            allEquipments.forEach(eq => {
-                const sn = normalizeId(eq['Nº Série'] || eq.NumeroSerie);
-                if (sn) mainEquipmentsBySN.set(sn, eq);
-            });
-
-            populateSectorSelect(allEquipments);
-            sectorSelectorSection.classList.remove('hidden');
-            updateStatus('Arquivo mestre carregado com sucesso! Selecione um setor.', false);
-
-        } catch (error) {
-            updateStatus(`Erro ao ler o arquivo: ${error.message}`, true);
-            console.error(error);
-        }
-    });
 }
 
 if (startRondaButton) {
@@ -173,10 +208,7 @@ if (searchForm) {
         e.preventDefault();
         const searchTerm = normalizeId(searchInput.value);
         if (!searchTerm) return;
-
-        const found = mainEquipmentsBySN.get(searchTerm) || 
-                      allEquipments.find(eq => normalizeId(eq.Patrimonio) === searchTerm);
-        
+        const found = mainEquipmentsBySN.get(searchTerm) || allEquipments.find(eq => normalizeId(eq.Patrimonio) === searchTerm);
         if (found) {
             displayEquipment(found);
         } else {
@@ -190,102 +222,35 @@ if (searchForm) {
 if (confirmItemButton) {
     confirmItemButton.addEventListener('click', () => {
         if (!currentEquipment) return;
-        const sn = normalizeId(currentEquipment['Nº Série'] || currentEquipment.NumeroSerie);
+        const sn = normalizeId(currentEquipment['Nº Série']);
         const originalSector = String(currentEquipment.Setor || '').trim();
         const foundLocation = locationInput.value.trim();
-
         const rondaInfo = {
             'Nº de Série': sn,
+            'Equipamento': currentEquipment.Equipamento,
             'Setor Original': originalSector,
             'Status': 'Localizado',
             'Localização Encontrada': foundLocation,
             'Observações': obsInput.value.trim(),
             'divergence': foundLocation !== '' && normalizeId(foundLocation) !== normalizeId(originalSector)
         };
-
         itemsConfirmedInRonda.set(sn, rondaInfo);
         
-        // --- ALTERAÇÃO AQUI ---
-        // Adiciona o item confirmado à lista visualmente
         const li = document.createElement('li');
         li.dataset.sn = sn;
         li.textContent = `${rondaInfo.Equipamento} (SN: ${sn})`;
-        rondaList.appendChild(li);
         if (rondaInfo.divergence) {
             li.classList.add('divergence');
         } else {
             li.classList.add('confirmed');
         }
-        // A lógica de cores será aplicada no próximo passo
+        rondaList.appendChild(li);
 
-        // ... (o resto da função: alert, limpar campos, etc. continua igual)
         alert(`${currentEquipment.Equipamento} confirmado!`);
         searchInput.value = '';
         searchInput.focus();
         searchResult.classList.add('hidden');
         currentEquipment = null;
-        
         updateRondaCounter();
-        // Não precisamos mais de renderRondaList() aqui
-    });
-}
-
-// =========================================================================
-// --- NOVA FUNÇÃO DE EXPORTAÇÃO COMPLETA ---
-// =========================================================================
-if (exportRondaButton) {
-    exportRondaButton.addEventListener('click', () => {
-        if (allEquipments.length === 0) {
-            alert("O arquivo mestre não foi carregado. Não há dados para exportar.");
-            return;
-        }
-
-        // 1. FAZ UMA CÓPIA DO ARQUIVO MESTRE ORIGINAL
-        // Usamos JSON.parse(JSON.stringify(...)) para garantir uma cópia profunda e não alterar o original
-        const dadosParaExportar = JSON.parse(JSON.stringify(allEquipments));
-
-        // 2. ATUALIZA A CÓPIA COM OS DADOS DA RONDA ATUAL
-        const dataDaRonda = new Date().toLocaleDateString('pt-BR');
-
-        dadosParaExportar.forEach(equipamento => {
-            const sn = normalizeId(equipamento['Nº Série']);
-
-            // Verifica se este equipamento foi confirmado na ronda atual
-            if (itemsConfirmedInRonda.has(sn)) {
-                const infoDaRonda = itemsConfirmedInRonda.get(sn);
-
-                // Atualiza as colunas do equipamento com os novos dados da ronda
-                equipamento['Status'] = infoDaRonda.Status;
-                equipamento['Localização Encontrada'] = infoDaRonda['Localização Encontrada'];
-                equipamento['Observações'] = infoDaRonda.Observações;
-                equipamento['Data da Ronda'] = dataDaRonda;
-            }
-        });
-
-        console.log("Dados finais mesclados para exportação:", dadosParaExportar);
-
-        // 3. DEFINE OS CABEÇALHOS NA ORDEM CORRETA DO ARQUIVO MESTRE
-        const headers = [
-            'TAG', 'Equipamento', 'Fabricante', 'Modelo', 'Setor', 'Nº Série',
-            'Patrimônio', 'Fornecedor', 'Data Calibração', 'Data Vencimento Calibração',
-            'Manutenção Externa', 'OS', 'Status', 'Localização Encontrada',
-            'Data da Ronda', 'Observações'
-        ];
-
-        // 4. CONVERTE OS DADOS PARA O FORMATO DA PLANILHA (ARRAY DE ARRAYS)
-        const dadosParaPlanilha = dadosParaExportar.map(item => {
-            return headers.map(header => item[header] || ''); // Garante a ordem e preenche com vazio se não houver dado
-        });
-
-        // Adiciona a linha de cabeçalhos no topo
-        dadosParaPlanilha.unshift(headers);
-
-        // 5. GERA E DESCARREGA O FICHEIRO EXCEL
-        const worksheet = XLSX.utils.aoa_to_sheet(dadosParaPlanilha);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Equip_VBA_Atualizado');
-
-        const nomeFicheiro = `Controle_Equipamentos_Ronda_${dataDaRonda.replace(/\//g, '-')}.xlsx`;
-        XLSX.writeFile(workbook, nomeFicheiro);
     });
 }
