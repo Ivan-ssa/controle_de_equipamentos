@@ -110,3 +110,26 @@ button.export-button {
     background-color: #f8f9fa;
     opacity: 0.8;
 }
+/* Em: css/mobile_style.css */
+
+#rondaList li {
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+    margin-bottom: 5px;
+    border-radius: 5px;
+    transition: background-color 0.3s;
+}
+
+/* Cor VERDE para itens confirmados no setor correto */
+#rondaList li.confirmed {
+    background-color: #d4edda; /* Verde claro */
+    color: #155724;
+    border-left: 5px solid #28a745;
+}
+
+/* Cor AMARELA para itens com divergência de setor */
+#rondaList li.divergence {
+    background-color: #fff3cd; /* Amarelo claro */
+    color: #856404;
+    border-left: 5px solid #ffc107;
+}

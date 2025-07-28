@@ -29,10 +29,17 @@ const rondaCounter = document.getElementById('rondaCounter');
 const rondaList = document.getElementById('rondaList');
 const exportRondaButton = document.getElementById('exportRondaButton');
 
-// --- FUNÇÕES AUXILIARES ---
+
 function normalizeId(id) {
-    if (!id) return '';
-    return String(id).trim().toUpperCase();
+    if (id === null || id === undefined) return '';
+    let strId = String(id).trim();
+    // Se a string for composta apenas por dígitos...
+    if (/^\d+$/.test(strId)) {
+        // Converte para número para remover zeros à esquerda e depois para string novamente.
+        return String(parseInt(strId, 10));
+    }
+    // Para outros casos (letras e números), apenas converte para maiúsculas.
+    return strId.toUpperCase();
 }
 
 function updateStatus(message, isError = false) {
@@ -75,8 +82,8 @@ function startRonda(sector) {
     rondaListSection.classList.remove('hidden');
 
     updateRondaCounter();
-    renderRondaList();
-
+    if (rondaList) rondaList.innerHTML = ''; 
+    
     searchInput.value = '';
     searchInput.focus();
 }
@@ -198,14 +205,28 @@ if (confirmItemButton) {
 
         itemsConfirmedInRonda.set(sn, rondaInfo);
         
+        // --- ALTERAÇÃO AQUI ---
+        // Adiciona o item confirmado à lista visualmente
+        const li = document.createElement('li');
+        li.dataset.sn = sn;
+        li.textContent = `${rondaInfo.Equipamento} (SN: ${sn})`;
+        rondaList.appendChild(li);
+        if (rondaInfo.divergence) {
+            li.classList.add('divergence');
+        } else {
+            li.classList.add('confirmed');
+        }
+        // A lógica de cores será aplicada no próximo passo
+
+        // ... (o resto da função: alert, limpar campos, etc. continua igual)
         alert(`${currentEquipment.Equipamento} confirmado!`);
         searchInput.value = '';
         searchInput.focus();
         searchResult.classList.add('hidden');
         currentEquipment = null;
         
-        renderRondaList();
         updateRondaCounter();
+        // Não precisamos mais de renderRondaList() aqui
     });
 }
 
