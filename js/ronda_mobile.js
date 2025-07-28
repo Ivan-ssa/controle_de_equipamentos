@@ -1,6 +1,6 @@
 // js/ronda_mobile.js
 
-import { readExcelWorkbook } from './excelReader.js'; // Alterado para importar a nova função
+import { readExcelWorkbook } from './excelReader.js'; // Importa a nova função
 
 // --- ESTADO DA APLICAÇÃO ---
 let allEquipments = [];      // Dados da aba 'Equip_VBA'
@@ -10,7 +10,7 @@ let currentRondaItems = [];
 let itemsConfirmedInRonda = new Map();
 let currentEquipment = null;
 
-// --- ELEMENTOS DO DOM (sem alterações) ---
+// --- ELEMENTOS DO DOM ---
 const masterFileInput = document.getElementById('masterFileInput');
 const loadFileButton = document.getElementById('loadFileButton');
 const statusMessage = document.getElementById('statusMessage');
@@ -57,10 +57,8 @@ if (loadFileButton) {
         }
         updateStatus('Lendo ficheiro mestre...');
         try {
-            // Usa a nova função para ler todas as abas de uma vez
             const allSheets = await readExcelWorkbook(file);
 
-            // Tenta obter os dados da aba 'Equip_VBA'
             allEquipments = allSheets.get('Equip_VBA') || [];
             if (allEquipments.length === 0) {
                 const firstSheetName = allSheets.keys().next().value;
@@ -69,7 +67,6 @@ if (loadFileButton) {
                 console.log(`Aba 'Equip_VBA' não encontrada, a usar a primeira aba: '${firstSheetName}'`);
             }
 
-            // Tenta obter os dados da aba 'Ronda'. Se não existir, começa com uma lista vazia.
             previousRondaData = allSheets.get('Ronda') || [];
             console.log(`Encontrados ${previousRondaData.length} registos na aba 'Ronda' anterior.`);
             

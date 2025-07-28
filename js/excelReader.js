@@ -4,9 +4,9 @@
 // FUNÇÃO ORIGINAL (Mantida para a parte principal do projeto)
 // =========================================================================
 /**
- * Lê o conteúdo de um arquivo Excel/CSV e retorna os dados de uma aba específica.
+ * Lê o conteúdo de um arquivo Excel e retorna os dados de uma aba específica.
  * @param {File} file - O arquivo a ser lido.
- * @param {string} [sheetName] - Opcional. O nome da aba a ser lida. Se não for fornecido, a primeira aba será usada.
+ * @param {string} [sheetName] - Opcional. O nome da aba. Se não for fornecido, a primeira aba será usada.
  * @returns {Promise<Array<Object>>} - Uma Promise que resolve com os dados da planilha.
  */
 export function readExcelFile(file, sheetName) {
