@@ -48,10 +48,10 @@ export function renderTable(filteredEquipments, tableBodyElement, consolidatedCa
             // Usamos setProperty para poder adicionar '!important' e sobrepor o CSS
             if (setorDaRonda && setorDaRonda === setorDeOrigem) {
                 // Se o setor está correto (VERDE), sobrepõe qualquer outra cor de fundo
-                row.style.setProperty('background-color', '#d4edda', 'important');
+                row.style.setProperty('background-color', '#ecf570ff', 'important');
             } else {
                 // Se o setor está divergente (AMARELO), sobrepõe qualquer outra cor de fundo
-                row.style.setProperty('background-color', '#fff3cd', 'important');
+                row.style.setProperty('background-color', '#fccb2cff', 'important');
             }
         }
         
