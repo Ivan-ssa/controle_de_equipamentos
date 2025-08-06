@@ -121,7 +121,7 @@ tbody tr.in-external-maintenance td {
     display: none !important;
 }
 tbody tr.ronda-encontrado td {
-    background-color: #d4ffd4 !important; /* Verde claro */
+    background-color: #e7da5f !important; /* Verde claro */
 }
 tbody tr.ronda-divergente td {
     background-color: #ffe4b2 !important; /* Laranja claro */
